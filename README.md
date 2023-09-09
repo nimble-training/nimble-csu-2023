@@ -3,9 +3,8 @@ Materials for the NIMBLE short course at the enviBayes workshop at Colorado Stat
 
 To prepare for the workshop:
 
- - Install NIMBLE (see below)
- - Install additional packages (see below)
- - Download these materials (and check back before the workshop on Monday for updates)
+ - Install the `nimble` and `nimbleHMC` packages (see below)
+ - Download these materials.
 
 All materials for the workshop will be in this GitHub repository. If you're familiar with Git/GitHub, you already know how to get all the materials on your computer. If you're not, simply click [here](https://github.com/nimble-training/nimble-csu-2023/archive/refs/heads/main.zip).
 
@@ -14,15 +13,15 @@ All materials for the workshop will be in this GitHub repository. If you're fami
 Modules:
 
 1. [Introduction to NIMBLE: Basic concepts](https://htmlpreview.github.io/?https://github.com/nimble-training/nimble-csu-2023/blob/main/content/introduction_to_nimble.html)
-2. Comparing and customizing MCMC methods in NIMBLE
-3. User-defined distributions and functions in models
-4. Programming algorithms
+2. [Comparing and customizing MCMC methods in NIMBLE](https://htmlpreview.github.io/?https://github.com/nimble-training/nimble-csu-2023/blob/main/content/comparing_and_customizing_mcmc.html)
+3. [User-defined distributions and functions in models](https://htmlpreview.github.io/?https://github.com/nimble-training/nimble-csu-2023/blob/main/content/user_defined.html)
+4. [Programming algorithms](https://htmlpreview.github.io/?https://github.com/nimble-training/nimble-csu-2023/blob/main/content/nimble_programming.html)
 
 ## Help with NIMBLE
 
-Our user manual is [here](https://r-nimble.org/html_manual/cha-welcome-nimble.html).
+Please consult our [website](https://r-nimble.org) and our [user manual](https://r-nimble.org/html_manual/cha-welcome-nimble.html).
 
-We have a 'cheatsheet' and a guide to converting from JAGS or WinBUGS to NIMBLE [here](https://r-nimble.org/documentation).
+At the website, we have a 'cheatsheet' and a guide to converting from JAGS or WinBUGS to NIMBLE [here](https://r-nimble.org/documentation).
 
 
 ## Installing NIMBLE

@@ -17,7 +17,9 @@ slides > slide {
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+eval <- TRUE
 library(nimble)
+source('setup.R')
 ```
 
 # Introduction 
@@ -81,7 +83,7 @@ calcDeps_regr$run()   ## second stage: run code
 
 # Some notes
 
-We could compiled `calcDeps_regr`.  Then `run` would become a method of a C++ class.
+We could compile `calcDeps_regr`.  Then `run` would become a method of a C++ class.
 
 Notice that:
 
@@ -123,7 +125,7 @@ calcDeps_regr$run()
 - With setup code, a `nimbleFunction` becomes an R reference class definition (uncompiled) and a C++ class definition (compiled).
     - `nimbleFunction` returns a generator (aka constructor, aka initializer) of new class objects.
 
-nimbleFunction class definitions (i.e., with setup code):
+# nimbleFunction class definitions (i.e., with setup code):
 
 - `setup` is always executed in R.
     - Typically one-time, high-level processing such as querying model structure.
@@ -154,7 +156,7 @@ Plan:
 
 # A nimbleFunction for the regression model likelihood
 
-```{r, regr-objective, eval}
+```{r, regr-objective}
 objective <- nimbleFunction(
     setup = function(model, nodes) {
         calcNodes <- model$getDependencies(nodes, self = FALSE)
@@ -185,7 +187,7 @@ rObjective <- objective(regrModel, c('b0', 'b1', 'sigma'))
 cObjective <- compileNimble(rObjective, project = regrModel)
 ```
 
-Now let's try using it. Any thoughts why the warnings occur?
+Now let's try using it (we'll need to ignore the warnings caused by negative sd values).
 
 ```{r, regr-optimize}
 set.seed(1)
@@ -200,7 +202,7 @@ optC
 It's not all that helpful in this small example, but one can provide a gradient function to `optim` to potentially speed up the optimization . Let's use NIMBLE's AD capability to do this.
 
 
-```{r, regr-objective-grad, eval}
+```{r, regr-objective-grad}
 objective_with_grad <- nimbleFunction(
     setup = function(model, nodes) {
         calcNodes <- model$getDependencies(nodes, self = FALSE)
@@ -209,7 +211,7 @@ objective_with_grad <- nimbleFunction(
         
         # Set up the additional arguments for nimDerivs when the function
         #   called includes model$calculate
-        derivsInfo <- makeDerivsInfo(model, nodes, calcNodes)
+        derivsInfo <- makeModelDerivsInfo(model, nodes, calcNodes)
         updateNodes <- derivsInfo$updateNodes
         constantNodes <- derivsInfo$constantNodes
     },
@@ -272,7 +274,7 @@ Laplace approximation:
   * Compute the Hessian of $\log(P(y | x, \theta) P(x | \theta))$ at $x = x^{*}$.
   * Do a calculation with $P(y | x^{*}, \theta) P(x^{*} | \theta)$ and the Hessian.
   
-# Fourth example: Use Deer E. cervi GLMM
+# Example: Use Deer E. cervi GLMM
 
 We've used this previously. Here is the code in case we need to look at it:
 
@@ -311,14 +313,14 @@ DEconstants <- list(num_farms = 24,
 
 Make Deer E. cervi model with derivative tools built.
 
-```{r, eval=eval}
+```{r, eval=TRUE}
 DEmodel <- nimbleModel(DEcode,
                        data = DEdata,
                        constants = DEconstants,
                        inits = DEinits_vals,
                        buildDerivs = TRUE)
 
-C_DEmodel <- compileNimble(DEmodel)
+cDEmodel <- compileNimble(DEmodel)
 ```
 
 # Example: Laplace approximation
@@ -328,7 +330,7 @@ Here is a nimbleFunction for a basic univariate Laplace approximation.
 ```{r, eval=eval}
 simple_1D_Laplace <- nimbleFunction(
   setup = function(model, RE_node, calc_nodes) {
-    derivsInfo <- makeDerivsInfo(model, RE_node, calc_nodes)
+    derivsInfo <- makeModelDerivsInfo(model, RE_node, calc_nodes)
     updateNodes <- derivsInfo$updateNodes
     constantNodes <- derivsInfo$constantNodes
   },
@@ -362,12 +364,10 @@ simple_1D_Laplace <- nimbleFunction(
       # for optimization.
       x_init <- numeric(length = 1)
       x_init[1] <- model[[RE_node]]
-      # Do optimization using a conjugate gradient method
-      # that uses the AD gradient.
       # This is a minimization of the negative log probability
       optim_result <- optim(par = x_init,
                             fn = negLogLik, gr = gr_negLogLik,
-                            method = "CG")
+                            method = "BFGS")
       # Get the value at the maximum, x^*
       optim_logLik <- -optim_result$value
       # Get the second derivative at the maximum
@@ -396,7 +396,7 @@ Try the Laplace approximation for the first random effect.
 RE_node <- "farm_effect[1]"
 calc_nodes <- DEmodel$getDependencies(RE_node)
 test <- simple_1D_Laplace(DEmodel, RE_node, calc_nodes)
-ctest <- compileNimble(test, project = C_DEmodel)
+ctest <- compileNimble(test, project = cDEmodel)
 ctest$Laplace()
 ```
 
@@ -425,9 +425,9 @@ param_nodes <- DEmodel$getNodeNames(topOnly = TRUE)
 DE_Laplace <- buildLaplace(DEmodel, paramNodes = param_nodes,
                            randomEffectsNodes = RE_node,
                            calcNodes = calc_nodes)
-C_DE_Laplace <- compileNimble(DE_Laplace, project = DEmodel)
-param_values <- values(C_DEmodel, param_nodes)
-C_DE_Laplace$Laplace(param_values)
+cDE_Laplace <- compileNimble(DE_Laplace, project = DEmodel)
+param_values <- values(cDEmodel, param_nodes)
+cDE_Laplace$findMLE(param_values)
 # See which parameters these correspond to:
 param_nodes
 ```
@@ -438,12 +438,10 @@ Use the fully built Laplace approximation, handling all the random effects and m
 
 ```{r, eval=eval}
 DE_Laplace <- buildLaplace(DEmodel)
-C_DE_Laplace <- compileNimble(DE_Laplace, project = DEmodel)
-LaplaceMLE <- C_DE_Laplace$LaplaceMLE()
-C_DE_Laplace$inverseTransform(LaplaceMLE$par)
+cDE_Laplace <- compileNimble(DE_Laplace, project = DEmodel)
+LaplaceMLE <- cDE_Laplace$findMLE()
+summaryLaplace(cDE_Laplace, LaplaceMLE)
 ```
-
-Notice the `inverseTransform` step.  We will likely change this behavior in the future so that LaplaceMLE returns the inverse-transformed parameters.
 
 # Example: Laplace approximation
 
@@ -630,7 +628,7 @@ mcmc <- buildMCMC(mcmcConf)
 mcmc$run(5)
 ```
 
-# Let's make an interesting sampler (1)
+# A more interesting sampler
 
 Let's work on a more involved case where we can't make such simple modifications to an existing sampler.
 
@@ -717,6 +715,7 @@ mcmcConf <- configureMCMC(DEmodel)
 mcmcConf$addSampler(target = c('sex_int'),
                     type = ourSampler,
                     control = list(offsetNodes = 'farm_effect'))
+mcmcConf
 mcmc <- buildMCMC(mcmcConf)
 ```
 
