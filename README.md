@@ -9,13 +9,11 @@ To prepare for the workshop:
 
 All materials for the workshop will be in this GitHub repository. If you're familiar with Git/GitHub, you already know how to get all the materials on your computer. If you're not, simply click [here](https://github.com/nimble-training/nimble-csu-2023/archive/refs/heads/main.zip).
 
-There is some overview information [here (https://htmlpreview.github.io/?https://github.com/nimble-training/nimble-csu-2023/blob/main/overview.html), including links to the content modules in order.
-
 ## Schedule
 
 Modules:
 
-1. [Introduction to NIMBLE: Basic concepts](content/introduction_to_nimble.html)
+1. [Introduction to NIMBLE: Basic concepts](https://htmlpreview.github.io/?https://github.com/nimble-training/nimble-csu-2023/blob/main/content/introduction_to_nimble.html)
 2. Comparing and customizing MCMC methods in NIMBLE
 3. User-defined distributions and functions in models
 4. Programming algorithms
@@ -90,7 +88,7 @@ Then to update from the repository to get any changes we've made:
 - `cd /directory/where/you/put/the/repository/nimble-csu-2023`
 - `git pull`
 
-# The Legal Stuff
+## The Legal Stuff
 
 - This material was created by the NIMBLE development team and is licensed under a Creative Commons Attribution 3.0 Unported License. You are free to use, modify, and redistribute any of this material with attribution.
 
