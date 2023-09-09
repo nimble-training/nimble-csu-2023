@@ -1,8 +1,8 @@
 ---
 title: "Introduction to NIMBLE"
-subtitle: "NIMBLE 2023 Virtual Workshop"
+subtitle: "enviBayes 2023 NIMBLE short course"
 author: "NIMBLE Development Team"
-date: "January 2023"
+date: "September 2023"
 output:
   slidy_presentation: default
   beamer_presentation: default
@@ -17,7 +17,7 @@ slides > slide {
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,
-                      cache = TRUE,
+                      cache = FALSE,
                       tidy.opts = list(width.cutoff = 60),
                       tidy = TRUE)
 has_ggplot2 <- require(ggplot2)
@@ -28,6 +28,7 @@ generate_original_results <- FALSE
 
 # What is NIMBLE?
 
+
 - A framework for hierarchical statistical models and methods.
 - A nearly drop-in alternative to WinBUGS, OpenBUGS and JAGS.
 - An extension of the BUGS language for writing new functions and distributions.
@@ -37,10 +38,10 @@ generate_original_results <- FALSE
     - Sequential Monte Carlo (particle filtering) (via the `nimbleSMC` package)
     - Monte Carlo Expectation Maximization (maximum likelihood)
 - A model-generic programming system to write new analysis methods.
-- Numerical Inference for statistical Models using Bayesian and Likelihood Estimation.
 
 # When might you use NIMBLE?
 
+<font size="4">
 Good cases:
 
 - Experimenting with different samplers.
@@ -58,16 +59,14 @@ Bad cases:
 - Algorithms/models requiring parallelization* (beyond simply running multiple chains).
 - Algorithms/models requiring use of sparse matrix algebra*. 
 
-* Work in progress on this in the new NIMBLE compilation system we've been developing, but this has been a multi-year project...
+(*) Work in progress on this in the new NIMBLE compilation system we've been developing, but this has been a multi-year project...
 
+</font>
 
-# First example: A generalized linear mixed model (GLMM)
+# Example: A generalized linear mixed model (GLMM)
 
-* There are plenty of specialized GLMM packages.
-* We start with a GLMM because it will be familiar to many of you.
 * This example is from [Zuur et al. (2009, Mixed Effects Models and Extensions in Ecology with R)](https://www.highstat.com/index.php/mixed-effects-models-and-extensions-in-ecology-with-r) (chapter 13).
 * Elaphostrongylus cervi (E. cervi) is a nematode parasite of deer.  On each of 24 farms in Spain, multiple deer were sampled for E. cervi.
-* Original data from "Vicente et al. (2005)", citing [this](https://doi.org/10.1051/vetres:2005044), although we're not sure they cited the right paper!
 * 826 total deer.
 * `Sex` (M/F) and (centered) body `Length` are explanatory variables (fixed effects).
 * `Farm` is a random effect.
@@ -78,7 +77,7 @@ Bad cases:
 
 ```{r}
 library(nimble)
-DeerEcervi <- read.table('DeerEcervi.txt'), header = TRUE)
+DeerEcervi <- read.table('DeerEcervi.txt', header = TRUE)
 summary(DeerEcervi)
 
 ## Create presence/absence data from counts.
@@ -130,7 +129,7 @@ DEcode <- nimbleCode({
    
     - `dnorm(mean = mu, sd = sigma)`                    
     - `dnorm(mean = mu, var = sigma_squared)`  
-    - `dnorm(mean = mu, tau = tau)` (tau = precision)   DEFAULT IF NOT NAMED   
+    - `dnorm(mean = mu, tau = tau)` # (tau = precision)   DEFAULT IF NOT NAMED   
     
 - Distributions with alternative parameterizations are listed in Table 5.2 of [User Manual Section 5.2.4](https://r-nimble.org/html_manual/cha-writing-models.html#subsec:dists-and-functions)
 
@@ -178,8 +177,10 @@ DEmodel <- nimbleModel(DEcode,
 We can set data and inits at the `nimbleModel` step (above) or now:
 
 ```{r}
-DEmodel$setData(list(Ecervi_01 = DeerEcervi$Ecervi_01))
-# This sets the values and *flags the nodes as data*.
+DEdata <- list(Ecervi_01 = DeerEcervi$Ecervi_01)
+# This sets the values and *flags the nodes as data*:
+DEmodel$setData(DEdata)
+
 DEinits <- function() {
   list(sex_int = c(0, 0),
        length_coef = c(0, 0),
@@ -188,7 +189,8 @@ DEinits <- function() {
 }
 
 set.seed(123)
-DEmodel$setInits(DEinits())
+DEinits_vals <- DEinits()
+DEmodel$setInits(DEinits_vals)
 ```
 
 # GLMM Example: 2. Build the MCMC
@@ -211,14 +213,15 @@ cDEmcmc <- compileNimble(DEmcmc, project = DEmodel)
 # GLMM Example: 4. Run the MCMC
 
 ```{r}
-DEresults <- runMCMC(cDEmcmc, niter=11000, nburnin=1000, WAIC=TRUE)
+time_baseline <- system.time(DEresults <- runMCMC(cDEmcmc, niter=11000, nburnin=1000, WAIC=TRUE))
+cat("Sampling time: ", time_baseline[3], "seconds.\n")
 ```
 
 # GLMM Example: 5. Extract the samples and WAIC
 
 ```{r}
 # Samples
-samples1 <- DEresults$samples
+samples <- DEresults$samples
 ```
 
 ```{r}
@@ -245,10 +248,7 @@ dev.off()
 
 # GLMM Example: Managing the run at the lowest level with `mcmc$run`"
 
-
-Start from:
-
-- Compiled MCMC
+Starting from a compiled MCMC, we can also do this:
 
 ```{r}
 cDEmcmc$run(niter = 11000, nburnin=1000)
@@ -289,7 +289,7 @@ cDEmcmc$getWAIC()
 
 When values are grouped (particularly in irregular ways), we often have (potentially complicated) indexing.
 
-Here `sex` and `farm_ids` are vectors of  membership indexes that are known in advance. Make sure to provide them in `constants` to avoid unnecessary computation (more later). 
+Here `sex` and `farm_ids` are vectors of  membership indexes that are known in advance. Make sure to provide them in `constants` to avoid unnecessary computation.
 
 ```{r, eval=FALSE}
 for(i in 1:num_animals) {
@@ -303,7 +303,7 @@ for(i in 1:num_animals) {
 
 Particularly in ecological models, indexing can get very complicated.
 
-The farm grouping above is 'ragged' (as is the sex grouping). If the number of observations per farm were constant ('regular'/'rectangular'), we could have something like this (ignoring sex and length):
+The farm grouping above is "ragged" (as is the sex grouping). If the number of observations per farm were constant (aka, "regular", "rectangular"), we could have something like this (ignoring sex and length):
 
 ```{r, eval=FALSE}
 for(j in 1:num_farms) 
@@ -462,7 +462,7 @@ Results from `model$getDependencies` are in *topologically sorted* order:
 - If you calculate them in order, you'll get correct results.
 - E.g., `predicted.y[2]` comes before `y[2]`.
 
-Consider setting up a Metropolis-Hastings, slice, or Hamiltonian sampler on a subset of nodes in the model. 
+Consider setting up a Metropolis-Hastings, slice, or Hamiltonian sampler on a subset of nodes in the model. Behind the scenes, `getDependencies` is needed. 
 
 # Nodes vs. variables
 
@@ -556,7 +556,7 @@ model2$y
 
 Consider the following version of our linear regression model.
 
-There is no `predicted.y[i]`.  The expression from that is directly in the `dnorm` for `y[i]`. Also, we now use the variance instead of the standard deviation in the likelihood.
+`predicted.y[i]` no longer appears.  The expression from that is directly in the `dnorm` for `y[i]`. Also, we now use the variance instead of the standard deviation in the likelihood.
 
 ```{r}
 code3 <- nimbleCode({

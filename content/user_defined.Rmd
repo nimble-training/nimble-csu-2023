@@ -1,0 +1,493 @@
+---
+title: "User-defined distributions and functions"
+subtitle: "enviBayes 2023 NIMBLE short course"
+author: "NIMBLE Development Team"
+date: "September 2023"
+output:
+  slidy_presentation: default
+  beamer_presentation: default
+---
+<style>
+slides > slide {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      cache = TRUE)
+library(nimble)
+source('setup.R')
+```
+
+# User-defined functions and distributions
+
+We can extend the modeling language (i.e., NIMBLE's variation on `BUGS`)
+to define distributions and functions not provided by NIMBLE itself.
+
+User-defined **functions** give new deterministic calculations, e.g.
+
+```{r, eval=FALSE}
+nimbleCode({
+  # other code not shown
+  predicted[i] <- my_function(params[i, 1:p])
+  # other code not shown
+})
+```
+
+User-defined **distributions** return a log probability (density), e.g.
+
+```{r, eval=FALSE}
+nimbleCode({
+  # other code not shown
+  y[i] ~ dmy_distribution(param[i], theta[i])
+  # other code not shown
+})
+```
+
+# User-defined distributions: motivation
+
+#### Why write a user-defined distribution?
+
+ - marginalize over parts of the model (e.g., latent states) for improved efficiency
+ - use distributions that NIMBLE does not provide (e.g., Pareto, beta-binomial, etc.)
+ - non-standard data formats (e.g., sparse data representations)
+ - vectorize a set of scalar nodes for efficiency
+
+#### How do I write a user-defined distribution?
+
+- A `nimbleFunction` is defined by providing an R-based density function.
+- The `nimbleFunction` can be compiled if it is limited to basic math, distributions, for loops, if-then-else, and a few other basics.
+- "compiled" means that nimble will generate C++, compile that, and make it available for use from R.
+
+# Marginalization
+
+In a hierarchical model, one can *in principle* always integrate over latent states. However only under certain situations can one do those integrals in closed form (analytically).
+
+Analytic integration is always possible in conjugate situations. For example:
+
+$$ y_i \sim N(\mu_i, \sigma^2); i=1,\ldots,n $$
+$$ \mu_i \sim N(\mu_0, \sigma_0^2),  i=1,\ldots,n $$
+
+Here there is one latent state per observation. We can do MCMC here, but it involves a large number of parameters, n+3.
+
+If we marginalize:
+
+  - We reduce the total number of computations done at each step of the MCMC.
+  - We reduce the dimensionality of the parameter space needing exploration.
+  - In some cases the complexity of calculating the marginalized density offsets some of the benefits above.
+
+Here's the marginalized result, with only 3 parameters.
+
+$$ y_i \sim N(\mu_0, \sigma^2 + \sigma_0^2) $$
+
+(If we want inference on $\mu_i, i=1,\ldots,n$ we need to sample the latent states conditional on the data and the MCMC draws of $\mu_0, \sigma_0^2, \sigma^2$. We'll work on this in Module 9b.)
+
+# Generalizing the E. cervi example
+
+Suppose we wanted more flexibility than assuming a normal distribution for the farm effects in the example.
+
+We could use a two-component normal mixture. In BUGS/JAGS, a standard way to do this is to introduce a latent indicator for each farm indicating which component it is in.
+
+It would be hard to constrain the mixture to have mean zero, so we'll move the intercept for sex 1 into the mixture.
+
+```{r}
+DEcodeFlex <- nimbleCode({
+  sex_int[1] <- 0    # constraint to allow mixture to have non-zero mean
+  sex_int[2] ~ dnorm(0, sd = 1000)
+  for(i in 1:2) {
+    # Priors for intercepts and length coefficients for sex = 1,2
+    length_coef[i] ~ dnorm(0, sd = 1000)
+  }
+  
+  # Priors for farm random effects
+  # 'Manual' inclusion of bivariate normal mixture
+  for(i in 1:num_farms) {
+    farm_effect[i] ~ dnorm(mu[ind[i]+1], sd = sigma[ind[i]+1])
+    ind[i] ~ dbern(pi)
+  }
+  for(i in 1:2) {
+    mu[i] ~ dnorm(0, sd = 1000)
+    sigma[i] ~ dunif(0, 20)
+  }
+  pi ~ dbeta(1, 1)   # same as dunif(0,1) but conjugacy will be detected
+  
+  # logit link and Bernoulli data probabilities
+  for(i in 1:num_animals) {
+    logit(disease_probability[i]) <- 
+      sex_int[ sex[i] ] +
+      length_coef[ sex[i] ]*length[i] +
+      farm_effect[ farm_ids[i] ]
+    Ecervi_01[i] ~ dbern(disease_probability[i])
+  }
+})
+```
+
+Note: here `ind[i]` is a non-constant index (unlike its use earlier). It's a latent state, subject to MCMC sampling.
+
+# Mixture models: identifiability
+
+In mixture models, the meaning of the components can change - we could have:
+
+$$ \pi = 0.4 $$ $$ \mu_1 = -2, \sigma_1 = 1 $$ $$ \mu_2 = 1, \sigma_2 = 3 $$
+
+or
+
+$$ \pi = 0.6 $$ $$ \mu_1 = 1, \sigma_1 = 3 $$ $$  \mu_2 = -2, \sigma_2 = 1 $$
+
+This is fine if we don't care about interpretability (though it makes assessing MCMC mixing difficult).
+
+We could also add a constraint (which will in this case remove conjugacy) to the model code:
+
+```
+constrain_means ~ dconstraint(mu[1] < mu[2])
+```
+
+Then we would include `constrain_means = 1` in the `data` list.
+
+# Marginalization in the E. cervi example
+
+We can always integrate over finite discrete random variables by summation, so we can integrate over the `ind[i]` variables, which take values of 0 or 1.
+
+The bivariate normal mixture density is: $$ \pi N(\mu_1, \sigma_1) + (1-\pi) N(\mu_2, \sigma_2) $$
+
+In BUGS/JAGS, one needs to use the "zeros trick" with a Poisson distribution and an 'observation' set to 0 to incorporate a non-standard density. That requires some gymnastics and adds nodes to the model graph.
+
+In NIMBLE, we write a user-defined distribution using a nimbleFunction. Let's ignore the details for now and just focus on writing the density calculations. 
+
+```{r}
+dnormmix2 <- nimbleFunction(
+  run = function(x = double(0), prob = double(0), 
+                 mean = double(1), sd = double(1), 
+                 log = logical(0, default = 0)) {
+    
+    returnType(double(0))
+    # Generally we want to calculate probability (density) on a 
+    # log scale, but here that won't work.
+    dens <- prob     * dnorm(x, mean[1], sd[1]) + 
+            (1-prob) * dnorm(x, mean[2], sd[2])  
+    if(log) 
+      return(log(dens)) else return(dens)
+  })
+```
+
+```{r, include=FALSE}
+# only needed for Rmd compilation; not needed for regular usage.
+assign('dnormmix2', dnormmix2, .GlobalEnv)
+# 'r' simulation function not required but included here because of Rmd compilation issues.
+rnormmix2 <- nimbleFunction(
+  run = function(n = integer(0), prob = double(0), 
+                 mean = double(1), sd = double(1)) {
+  # warning: dummy code    
+  returnType(double(0))
+  return(0)
+})
+
+assign('rnormmix2', rnormmix2, .GlobalEnv)
+```
+
+# Using the new distribution
+
+One can then immediately use the distribution in a model. NIMBLE will compile the user-defined distribution together with everything else, as if `dnormmix2` were a distribution that NIMBLE provides.
+
+```{r}
+DEcodeFlexMarg <- nimbleCode({
+  # Priors for intercepts and length coefficients for sex = 1,2
+  sex_int[1] <- 0    # constraint to allow mixture to have non-zero mean
+  sex_int[2] ~ dnorm(0, sd = 1000)
+  for(i in 1:2) {
+    length_coef[i] ~ dnorm(0, sd = 1000)
+  }
+  
+  # Priors for farm random effects (centered on the 'baseline' sex)
+  for(i in 1:num_farms) {
+    farm_effect[i] ~ dnormmix2(pi, mu[1:2], sigma[1:2])
+  }
+  for(i in 1:2) {
+    mu[i] ~ dnorm(0, sd = 1000)
+    sigma[i] ~ dunif(0, 20)
+  }
+  pi ~ dbeta(1, 1)
+  
+  # logit link and Bernoulli data probabilities
+  for(i in 1:num_animals) {
+    logit(disease_probability[i]) <- 
+      sex_int[ sex[i] ] +
+      length_coef[ sex[i] ]*length[i] +
+      farm_effect[ farm_ids[i] ]
+    Ecervi_01[i] ~ dbern(disease_probability[i])
+  }
+})
+```
+
+We can just create, compile, and use the model. 
+
+```{r}
+set.seed(1)
+modelFlexMarg <- nimbleModel(DEcodeFlexMarg, data = DEdata, 
+                     constants = DEconstants, 
+                     inits = c(DEinits_vals, list(pi = runif(1), 
+                               mu = rnorm(2), sigma = rep(1, 2))))
+
+modelFlexMarg$calculate('farm_effect')
+cModelFlexMarg <- compileNimble(modelFlexMarg)
+cModelFlexMarg$calculate('farm_effect')
+```
+
+# Next topics
+
+- More about user-defined distributions: "r", "p" and "q" functions.
+- Example of a user-defined function (spatial covariance matrix as a function of distances).
+- More about variable types in `nimbleFunction`s.
+- More about `nimbleFunction` features.
+
+# User-defined distribution: requirements
+
+User-defined distributions are simply `nimbleFunction`s that conform to some requirements.
+
+- Naming follows the R prefix convention of 'd' and (optionally) 'r', 'p' and 'q' functions.
+- The 'd' function must have *x* as its first argument, with appropriate type, such as `double(1)` for a vector random variable.
+- All variables in nimble models are doubles, so user-defined distribution and function arguments (and return values) should be non-scalar doubles or scalar double, integer or logical.  (Non-scalar integer or logical should not be used.)
+- The 'd' function must have *log* as its last argument, a logical (or integer) argument for whether the log density is returned or not. It must have `returnType(double(0))` (scalar).
+
+    - When called from a model, `log` will always be `1` (`TRUE`).
+
+- The (optional) 'r' function should have *n* as its first argument but need only work for `n=1`.  Otherwise it must have the same arguments as the `d` function (except for `x` and `log`).
+- The `returnType` of the 'r' function should be the same as the `x` type of the 'd' function. In other words, if the distribution is for a vector, then random draws should return a vector. 
+
+# User-defined distribution: When do you need 'r', 'p' and/or 'q' functions?
+
+- Random-number generation ('r' function) is only needed if:
+
+    - Initial values will not be provided, or 
+    - An algorithm that uses random draws such as sequential Monte Carlo ("particle filtering") from `nimbleSMC`
+ will be used.
+    - Posterior predictive nodes follow the distribution.
+
+- Cumulative distribution ('p') and quantile functions ('q') are only needed if:
+
+    - The distribution will be truncated, e.g. `y ~ T(dmy_dist(param1, param2), 0, Inf)`.
+
+# User-defined distribution: Manually registering user-defined distributions
+
+- `registerDistributions` is a function to register a new distribution for use in nimble models.
+- It is normally called automatically by `nimbleModel`, so you do not need to think about it.
+- You can call it manually if you need to:
+
+    - Support alternative parameterizations for your distribution.
+    - Provide a range of valid values (e.g. $x > 0$).
+    - Declare that values of $x$ must always be discrete (integers, even though the type declaration should be double!).
+    - Provide 'p' and 'q' functions.
+
+# User-defined functions: motivation
+
+Suppose we want to code a covariance matrix that depends on parameters for a Gaussian process model.
+
+In WinBUGS or JAGS, we would write the math to specify the matrix as part of the model code:
+
+```
+# Snippet of model code
+for(i in 1:n)
+  for(j in 1:n)
+    cov[i, j] <- sigma2*exp(-dists[i,j]/rho)
+
+prec[1:N, 1:N] <- inverse(cov[1:N, 1:N])
+x[1:N] ~ dmnorm(mu[1:N], prec[1:N, 1:N])
+```
+
+There are some disadvantages to this:
+
+- Only the math functionality allowed in BUGS code can be used (e.g., no `if` statements)
+- Model code can get complicated (lack of modularity)
+- $n^2$ `cov[i,j]` nodes in the model are created, likely leading to inefficiencies at various stages of processing.  In NIMBLE, the inefficiency from creating many nodes occurs when:
+
+    - creating the model
+    - configuring an MCMC
+    - compiling the model and any algorithms (e.g., MCMC)
+    - (to a lesser degree) running the algorithm (e.g., MCMC)
+
+(By the way, NIMBLE supports vectorized declarations, so we could write the following in model code:
+```
+cov[1:n, 1:n] <- sigma2 * exp(-dists[1:n, 1:n]/rho)
+```
+However, we will instead use this as an example for writing a user-defined function.)
+
+# User-defined functions: example
+
+In NIMBLE, users can write functions that can be directly used in model code.
+
+Here's the covariance matrix construction.
+
+```{r}
+expcov <- nimbleFunction(     
+  run = function(dists = double(2), rho = double(0), sigma = double(0)) {
+    returnType(double(2))
+    n <- dim(dists)[1]
+    result <- matrix(nrow = n, ncol = n, init = FALSE)
+    sigma2 <- sigma*sigma  # calculate once
+    for(i in 1:n)
+      for(j in 1:n)
+        result[i, j] <- sigma2*exp(-dists[i,j]/rho) # vectorized alternative is given later
+    return(result)
+  })
+```
+
+```{r, include=FALSE}
+# only needed for Rmd compilation; not needed for regular usage.
+assign('expcov', expcov, .GlobalEnv)
+```
+
+NOTE: For-loops are slow in R but fast in C++, so using loops in nimbleFunction code
+is a perfectly good approach.
+
+# Using the user-defined function in a model
+
+This function is then used in model code to determine the covariance matrix for the Gaussian spatial process at a finite set of locations (in this case the centroids of the spatial regions). 
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- mu0 * ones[1:N]
+  cov[1:N, 1:N] <- expcov(dists[1:N, 1:N], rho, sigma)
+  x[1:N] ~ dmnorm(mu[1:N], cov = cov[1:N, 1:N])
+  # other parts of model omitted
+})
+```
+
+NOTE: we could also have inverted to use the precision, but that will generally be less efficient than working directly with the covariance. NIMBLE will take the Cholesky of the covariance and use that in the multivariate normal calculations.
+
+# Using the user-defined function: full example
+
+Here's a basic spatial model that uses the spatial covariance matrix constructed by the user-defined function. 
+
+```{r}
+code <- nimbleCode({
+  # (hyper)parameter priors
+  mu0 ~ dnorm(0, sd = 100)
+  sigma ~ dunif(0, 100)  # prior for variance components based on Gelman (2006)
+  rho ~ dunif(0, 5)      # there might be a better non-informative prior for this
+
+  # MVN normal (Gaussian process) prior
+  mu[1:N] <- mu0 * ones[1:N]
+  cov[1:N, 1:N] <- expcov(dists[1:N, 1:N], rho, sigma)
+  x[1:N] ~ dmnorm(mu[1:N], cov = cov[1:N, 1:N])
+  
+  # likelihood for count data (e.g., disease mapping)
+  for(i in 1:N) {
+    expected[i] <- 1 # Data and/or predictive components would go here
+    lambda[i] <- expected[i] * exp(x[i])
+    y[i] ~ dpois(lambda[i])
+  }
+})
+
+N <- 134
+dists <- as.matrix(dist(runif(N)))
+model <- nimbleModel(code, constants = list(N = N, dists = dists, ones = rep(1, N)), 
+                     inits = list(rho = 1, sigma = 1, mu0 = 0))
+deps <- model$getDependencies(c('rho','mu0','sigma'), self = FALSE)
+deps
+model$simulate(deps)  # may be a bit slow uncompiled given the nested looping
+ # Note: there are no y values yet, so we are only looking at x
+range(model$x)
+model$calculate("x")
+Cmodel <- compileNimble(model)
+Cmodel$calculate("x")
+```
+
+# Vectorization within the nimbleFunction
+
+We could have written our user-defined function like this:
+
+```{r}
+expcov <- nimbleFunction(     
+  run = function(dists = double(2), rho = double(0), sigma = double(0)) {
+    returnType(double(2))
+    result <- sigma*sigma * exp(-dists / rho)
+    return(result)
+  })
+```
+
+NOTE: Model code requires square brackets (`[]`) for all non-scalars.  `nimbleFunction` code does not.
+
+Since the code will be compiled to C++ code, where looping is fast, whether we vectorize or not may not make a big difference. 
+
+But there could be some difference (which will be faster is not clear), as the vectorized code will make use of Eigen (C++ library used in nimble-generated C++) and the non-vectorized will be standard C++. 
+
+# More about types in `nimbleFunction`s
+
+- "type" means dimensionality (scalar, vector, matrix, 3D array, etc.) and element type (double, integer, logical).
+- (You can also define `nimbleList` types, but these can't be used in models.)
+
+### Two challenges (sources of confusion) about types:
+
+#### Dynamic vs. static typing
+
+- R uses dynamic typing.  The type of `x` can be changed by re-assignment. Everything is just an "R object."
+- C++, and therefore `nimbleFunction` `run` code, uses static typing.  Types are determined by first assignment.
+
+```
+foo <- nimbleFunction(
+  run = function(x = double(1)) {
+    x_positive <- x > 0 # First usage: x_positive becomes logical vector
+    # ... other code
+    x_positive <- x^2   # Problem: x_positive cannot hold doubles
+  }
+)
+```
+
+#### Length-one vectors vs scalars; etc.
+
+- R lacks a true scalar type.  Scalars are simply vectors of length 1.
+- C++ has true scalars, and `nimbleFunction`s use them for efficiency.
+- R sometimes dynamically treats a one-row or one-column matrix as a vector.
+- `nimbleFuntion` code requires explicit dropping of dimensions.
+
+```
+foo <- nimbleFunction(
+  run = function(x = double(0), y = double(1), z = double(2)) {
+     x <- y             # wrong: scalar <- vector
+     x <- y[1]          # right
+     y <- z             # wrong: vector <- matrix
+     y <- z[,1]         # right
+     y <- z %*% y       # wrong: vector <- matrix
+     y <- (z %*% y)[,1] # right
+  }
+)
+```
+
+# More about `nimbleFunction` features
+
+### Important difference in argument-passing:
+
+- In compiled mode, non-scalar arguments are passed by reference.
+- In uncompiled mode, they are passed by copy (i.e., R semantics)
+
+### What can be compiled?
+
+- Most math, including vectorized math: `x <- A %*% b`
+    - Explicit indexing is not required as it is in model code.
+- Most distributions, including recycling-rule behavior (mix and match scalars/vectors)
+    - e.g., `dnorm(xVector, muScalar, sigmaVector)`
+- integer for loops: `for(i in 1:n)`
+- `if`-`then`-`else`
+- Some linear algebra: `eigen`, `svd`, `solve`, `forwardsolve`, `backsolve`, `inverse`
+- Modified versions of `numeric`, `integer`, `matrix`, `array` to create variables.
+- Modified version of `optim`.
+- Calls to arbitrary R functions via `nimbleRcall`.
+- Calls to arbitrary C/C++/fortran code via `nimbleExternalCall`.
+- Other details not listed here.
+
+
+# Calling external code
+
+Suppose we want to do some calculation that is hard or impossible to implement in the NIMBLE DSL (i.e., the functionality that is available in run code that NIMBLE can compile to C++).
+
+ - We can actually call arbitrary R code from within run code.
+      - The basic idea of using `nimbleRcall` is to create a wrapper around an R function and use the wrapper in your model code.
+ - Or we can call C/C++ code from within run code.
+      - The basic idea of using `nimbleExternalCall` is to create a wrapper around a C/C++ function and use the wrapper in your model code. You'll need to provide .h and .o files for the C code.
+ - One could also use either an R or C/C++ wrapper to access code/functionality in additional languages.
+
+
+
+
