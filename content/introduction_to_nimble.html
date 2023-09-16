@@ -539,9 +539,6 @@ overflow-y: auto !important;
 </div>
 <div id="what-is-nimble" class="slide section level1">
 <h1>What is NIMBLE?</h1>
-<blockquote>
-<p>MY tip: add</p>
-</blockquote>
 <ul>
 <li>A framework for hierarchical statistical models and methods.</li>
 <li>A nearly drop-in alternative to WinBUGS, OpenBUGS and JAGS.</li>
@@ -561,7 +558,7 @@ methods.</li>
 </div>
 <div id="when-might-you-use-nimble" class="slide section level1">
 <h1>When might you use NIMBLE?</h1>
-<p><font size="4"> Good cases:</p>
+<p><font size="3"> Use cases:</p>
 <ul>
 <li>Experimenting with different samplers.</li>
 <li>Teaching Bayesian/hierarchical modeling algorithms.</li>
@@ -573,7 +570,7 @@ sampler.</li>
 combination with existing algorithms).</li>
 <li>Using automatic differentiation in algorithms in flexible ways.</li>
 </ul>
-<p>Bad cases:</p>
+<p>Some rough spots:</p>
 <ul>
 <li>Working with models with huge numbers of nodes (in particular huge
 numbers of parameters that are sampled via individual samplers).</li>
@@ -771,8 +768,8 @@ parameter. In BUGS or JAGS you would need to do this:</p>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|
 ##   [Warning] There are 4 individual pWAIC values that are greater than 0.4. This may indicate that the WAIC estimate is unstable (Vehtari et al., 2017), at least in cases without grouping of data nodes or multivariate data nodes.</code></pre>
-<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Sampling time: &quot;</span>, time_baseline[<span class="dv">3</span>], <span class="st">&quot;.</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
-<pre><code>## Sampling time:  2.902 .</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Sampling time: &quot;</span>, time_baseline[<span class="dv">3</span>], <span class="st">&quot;seconds.</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<pre><code>## Sampling time:  3.107 seconds.</code></pre>
 </div>
 <div id="glmm-example-5.-extract-the-samples-and-waic" class="slide section level1">
 <h1>GLMM Example: 5. Extract the samples and WAIC</h1>

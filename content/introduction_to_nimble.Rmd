@@ -20,10 +20,7 @@ knitr::opts_chunk$set(echo = TRUE,
                       cache = FALSE,
                       tidy.opts = list(width.cutoff = 60),
                       tidy = TRUE)
-has_ggplot2 <- require(ggplot2)
-has_mcmcplots <- require(mcmcplots)
-has_coda <- require(coda)
-generate_original_results <- FALSE
+library(coda)
 ```
 
 # What is NIMBLE?
@@ -41,8 +38,8 @@ generate_original_results <- FALSE
 
 # When might you use NIMBLE?
 
-<font size="4">
-Good cases:
+<font size="3">
+Use cases:
 
 - Experimenting with different samplers.
 - Teaching Bayesian/hierarchical modeling algorithms.
@@ -52,8 +49,7 @@ Good cases:
 - Implementing new or modified/extended algorithms (particularly in combination with existing algorithms).
 - Using automatic differentiation in algorithms in flexible ways.
 
-
-Bad cases:
+Some rough spots:
 
 - Working with models with huge numbers of nodes (in particular huge numbers of parameters that are sampled via individual samplers).
 - Algorithms/models requiring parallelization* (beyond simply running multiple chains).
