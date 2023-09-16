@@ -606,7 +606,7 @@ ourMH_debug <- nimbleFunction(
     model[[target]] <<- proposalValue                             
     proposalLogProb <- model$calculate(calcNodes)             
     logAcceptanceRatio <- currentLogProb - proposalLogProb    
-    accept <- decide(logMHR)                                     
+    accept <- decide(logAcceptanceRatio)                                     
     if(accept)                                                   
       copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
     else                                                         
@@ -748,9 +748,6 @@ cDEmcmc$run
 mcmcConf$printSamplers()
 ## (The built and compiled samplerFunctions are in the same order).
 cDEmcmc$samplerFunctions
-
-## Run the MCMC (could use runMCMC(cDEmcmc, ...) instead, but time=TRUE is not available via runMCMC)
-cDEmcmc$run(niter = 1000, time = TRUE)
 ## Access various internals.  Note that some of these have been reset after adaptation steps.
 cDEmcmc$samplerFunctions[[30]]$timesAdapted
 cDEmcmc$samplerFunctions[[30]]$timesAccepted
@@ -771,6 +768,8 @@ cDEmcmc$mvSaved[['farm_effect']]
 ## See time spent in each sampler (this will not include the 100 iterations
 ## we did "by hand", only iterations via cDEmcmc$run(), or runMCMC, which calls
 ## cDEmcmc$run).
+## Run the MCMC with timing turned on (only available via `$run`).
+cDEmcmc$run(niter = 1000, time = TRUE)
 cDEmcmc$getTimes()
 ```
 

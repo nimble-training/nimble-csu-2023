@@ -588,7 +588,7 @@ origWarn &lt;- options()$warn
 options(warn = -1)   ## turn off the warnings to keep the html cleaner
 system.time(optR &lt;- optim(c(0, 0, 1), rObjective$run, control = list(fnscale = -1)))</code></pre>
 <pre><code>##    user  system elapsed 
-##   6.269   0.000   6.270</code></pre>
+##   6.289   0.000   6.291</code></pre>
 <pre class="r"><code>system.time(optC &lt;- optim(c(0, 0, 1), cObjective$run, control = list(fnscale = -1)))</code></pre>
 <pre><code>##    user  system elapsed 
 ##   0.002   0.000   0.003</code></pre>
@@ -672,7 +672,7 @@ a derivative-free method like Nelder-Mead.</p>
 system.time(optR &lt;- optim(c(0, 0, 1), rObjective$fun, gr = rObjective$grad,
                  method = &quot;BFGS&quot;, control = list(fnscale = -1)))</code></pre>
 <pre><code>##    user  system elapsed 
-##  14.079   0.004  14.088</code></pre>
+##  14.015   0.004  14.021</code></pre>
 <pre class="r"><code>options(warn = origWarn)
 system.time(optC &lt;- optim(c(0, 0, 1), cObjective$fun, gr = cObjective$grad,
                  method = &quot;BFGS&quot;, control = list(fnscale = -1)))</code></pre>
@@ -1281,7 +1281,7 @@ have a <code>reset()</code> function.</li>
     model[[target]] &lt;&lt;- proposalValue                             
     proposalLogProb &lt;- model$calculate(calcNodes)             
     logAcceptanceRatio &lt;- currentLogProb - proposalLogProb    
-    accept &lt;- decide(logMHR)                                     
+    accept &lt;- decide(logAcceptanceRatio)                                     
     if(accept)                                                   
       copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
     else                                                         
@@ -1433,10 +1433,10 @@ cDEmcmc &lt;- compileNimble(DEmcmc, project = DEmodel)</code></pre>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|</code></pre>
 <pre class="r"><code>cat(&quot;Sampling time: &quot;, time_newsampler[3], &quot;seconds.\n&quot;)</code></pre>
-<pre><code>## Sampling time:  2.753 seconds.</code></pre>
+<pre><code>## Sampling time:  2.739 seconds.</code></pre>
 <pre class="r"><code>effectiveSize(samples) / time_newsampler[3]</code></pre>
 <pre><code>##        farm_sd length_coef[1] length_coef[2]     sex_int[1]     sex_int[2] 
-##       298.7336       465.9677       351.0575       692.7983       571.2480</code></pre>
+##       300.2605       468.3495       352.8518       696.3394       574.1679</code></pre>
 </div>
 <div id="accessing-more-information-from-a-sampler" class="section level1">
 <h1>Accessing more information from a sampler</h1>
@@ -1457,7 +1457,7 @@ cDEmcmc$run</code></pre>
 ##     ans &lt;- NULL
 ##     invisible(ans)
 ## }
-## &lt;environment: 0x5606443a9e70&gt;</code></pre>
+## &lt;environment: 0x55b984079db0&gt;</code></pre>
 <pre class="r"><code>## See where our sampler of interest is in the sampler configuration list.
 mcmcConf$printSamplers()</code></pre>
 <pre><code>## [1]  RW sampler: sex_int[1]
@@ -1588,8 +1588,8 @@ cDEmcmc$samplerFunctions</code></pre>
 ## function () 
 ## {
 ## }
-## &lt;bytecode: 0x560639cf8568&gt;
-## &lt;environment: 0x560623897750&gt;
+## &lt;bytecode: 0x55b977ff3df0&gt;
+## &lt;environment: 0x55b961b8d4f0&gt;
 ## Field &quot;CobjectInterface&quot;:
 ## An object of class &quot;uninitializedField&quot;
 ## Slot &quot;field&quot;:
@@ -1597,51 +1597,51 @@ cDEmcmc$samplerFunctions</code></pre>
 ## 
 ## Slot &quot;className&quot;:
 ## [1] &quot;ANY&quot;</code></pre>
-<pre class="r"><code>## Run the MCMC (could use runMCMC(cDEmcmc, ...) instead, but time=TRUE is not available via runMCMC)
-cDEmcmc$run(niter = 1000, time = TRUE)</code></pre>
-<pre><code>## |-------------|-------------|-------------|-------------|
-## |-------------------------------------------------------|</code></pre>
 <pre class="r"><code>## Access various internals.  Note that some of these have been reset after adaptation steps.
 cDEmcmc$samplerFunctions[[30]]$timesAdapted</code></pre>
-<pre><code>## [1] 50</code></pre>
+<pre><code>## [1] 550</code></pre>
 <pre class="r"><code>cDEmcmc$samplerFunctions[[30]]$timesAccepted</code></pre>
 <pre><code>## [1] 0</code></pre>
 <pre class="r"><code>cDEmcmc$samplerFunctions[[30]]$scale</code></pre>
-<pre><code>## [1] 1.01095</code></pre>
+<pre><code>## [1] 0.8497252</code></pre>
 <pre class="r"><code>cDEmcmc$samplerFunctions[[30]]$timesRan</code></pre>
 <pre><code>## [1] 0</code></pre>
 <pre class="r"><code>## Look at farm_effect in the compiled model
 cDEmodel$farm_effect</code></pre>
-<pre><code>##  [1] -3.14350060 -0.81017427 -0.02768033  2.84639374 -0.46307367 -1.66203611
-##  [7] -3.77837303  0.43050825 -2.48814150  1.01128369 -2.21513796 -1.91691408
-## [13] -0.96840478  0.94542880  0.68645524  2.67126361 -3.29379831  1.87975720
-## [19] -3.64259608 -1.81893483  1.73049070 -1.23555698  0.68808223 -0.37433196</code></pre>
+<pre><code>##  [1] -2.92133716  0.21215561  0.65616837  4.09115215  0.06396869 -1.58876126
+##  [7] -4.07606937  0.54597989 -1.66301215  0.84367992 -1.64533480 -1.07036108
+## [13] -0.10604899  2.41037499  1.26271822  0.41793143 -1.48750066  0.84352246
+## [19] -1.84834428  0.14732130  1.65872669  0.10110099  0.84156589  2.82508140</code></pre>
 <pre class="r"><code>## Run our sampler 100 times
 for(i in 1:100) cDEmcmc$samplerFunctions[[30]]$run()
 ## See if there were any updates
 cDEmodel$farm_effect</code></pre>
-<pre><code>##  [1] -2.73864389 -0.40531756  0.37717638  3.25125045 -0.05821697 -1.25717940
-##  [7] -3.37351632  0.83536496 -2.08328479  1.41614039 -1.81028125 -1.51205738
-## [13] -0.56354808  1.35028551  1.09131195  3.07612031 -2.88894161  2.28461391
-## [19] -3.23773938 -1.41407813  2.13534741 -0.83070027  1.09293893  0.03052475</code></pre>
+<pre><code>##  [1] -2.3494846  0.7840081  1.2280209  4.6630047  0.6358212 -1.0169087
+##  [7] -3.5042169  1.1178324 -1.0911596  1.4155324 -1.0734823 -0.4985086
+## [13]  0.4658035  2.9822275  1.8345707  0.9897839 -0.9156481  1.4153750
+## [19] -1.2764918  0.7191738  2.2305792  0.6729535  1.4134184  3.3969339</code></pre>
 <pre class="r"><code>## See how to look at the mvSaved object from the compiled MCMC
 ## (There are more direct ways to access values in mvSaved. See modelValues
 ## documentation.)
 ## This would show the full object: as.matrix(cDEmcmc$mvSaved)
 ## This is what I was looking for in the live session:
 cDEmcmc$mvSaved[[&#39;farm_effect&#39;]]</code></pre>
-<pre><code>##  [1] -2.73864389 -0.40531756  0.37717638  3.25125045 -0.05821697 -1.25717940
-##  [7] -3.37351632  0.83536496 -2.08328479  1.41614039 -1.81028125 -1.51205738
-## [13] -0.56354808  1.35028551  1.09131195  3.07612031 -2.88894161  2.28461391
-## [19] -3.23773938 -1.41407813  2.13534741 -0.83070027  1.09293893  0.03052475</code></pre>
+<pre><code>##  [1] -2.3494846  0.7840081  1.2280209  4.6630047  0.6358212 -1.0169087
+##  [7] -3.5042169  1.1178324 -1.0911596  1.4155324 -1.0734823 -0.4985086
+## [13]  0.4658035  2.9822275  1.8345707  0.9897839 -0.9156481  1.4153750
+## [19] -1.2764918  0.7191738  2.2305792  0.6729535  1.4134184  3.3969339</code></pre>
 <pre class="r"><code>## See time spent in each sampler (this will not include the 100 iterations
 ## we did &quot;by hand&quot;, only iterations via cDEmcmc$run(), or runMCMC, which calls
 ## cDEmcmc$run).
-cDEmcmc$getTimes()</code></pre>
-<pre><code>##  [1] 0.049563 0.039495 0.046577 0.038600 0.002524 0.003068 0.004810 0.006736
-##  [9] 0.002731 0.009473 0.001408 0.003137 0.004861 0.003914 0.004883 0.020594
-## [17] 0.003891 0.003286 0.005134 0.007176 0.003416 0.003569 0.004341 0.001614
-## [25] 0.003892 0.003413 0.003605 0.002695 0.002059 0.088093</code></pre>
+## Run the MCMC with timing turned on (only available via `$run`).
+cDEmcmc$run(niter = 1000, time = TRUE)</code></pre>
+<pre><code>## |-------------|-------------|-------------|-------------|
+## |-------------------------------------------------------|</code></pre>
+<pre class="r"><code>cDEmcmc$getTimes()</code></pre>
+<pre><code>##  [1] 0.033922 0.027069 0.031995 0.026721 0.001711 0.002034 0.003321 0.004649
+##  [9] 0.001888 0.006281 0.001002 0.002119 0.003200 0.002684 0.003339 0.014220
+## [17] 0.002631 0.002231 0.003624 0.004991 0.002340 0.002498 0.003066 0.001135
+## [25] 0.002704 0.002247 0.002538 0.001770 0.001365 0.061411</code></pre>
 </div>
 
 

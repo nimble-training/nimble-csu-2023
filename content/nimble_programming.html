@@ -762,10 +762,10 @@ negative sd values).</p>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">warn =</span> <span class="sc">-</span><span class="dv">1</span>)   <span class="do">## turn off the warnings to keep the html cleaner</span></span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(optR <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>), rObjective<span class="sc">$</span>run, <span class="at">control =</span> <span class="fu">list</span>(<span class="at">fnscale =</span> <span class="sc">-</span><span class="dv">1</span>)))</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##   5.926   0.001   5.926</code></pre>
+##   6.087   0.000   6.095</code></pre>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(optC <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>), cObjective<span class="sc">$</span>run, <span class="at">control =</span> <span class="fu">list</span>(<span class="at">fnscale =</span> <span class="sc">-</span><span class="dv">1</span>)))</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.002   0.000   0.001</code></pre>
+##   0.002   0.000   0.002</code></pre>
 <div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>optR</span></code></pre></div>
 <pre><code>## $par
 ## [1] 0.2551346 0.5781320 0.2329039
@@ -846,12 +846,12 @@ a derivative-free method like Nelder-Mead.</p>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(optR <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>), rObjective<span class="sc">$</span>fun, <span class="at">gr =</span> rObjective<span class="sc">$</span>grad,</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">method =</span> <span class="st">&quot;BFGS&quot;</span>, <span class="at">control =</span> <span class="fu">list</span>(<span class="at">fnscale =</span> <span class="sc">-</span><span class="dv">1</span>)))</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##  15.045   0.004  15.326</code></pre>
+##  14.300   0.000  14.299</code></pre>
 <div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">warn =</span> origWarn)</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(optC <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>), cObjective<span class="sc">$</span>fun, <span class="at">gr =</span> cObjective<span class="sc">$</span>grad,</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">method =</span> <span class="st">&quot;BFGS&quot;</span>, <span class="at">control =</span> <span class="fu">list</span>(<span class="at">fnscale =</span> <span class="sc">-</span><span class="dv">1</span>)))</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.002   0.000   0.002</code></pre>
+##   0.002   0.000   0.001</code></pre>
 <div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>optR</span></code></pre></div>
 <pre><code>## $par
 ## [1] 0.2551686 0.5780858 0.2329004
@@ -1449,7 +1449,7 @@ have a <code>reset()</code> function.</li>
 <span id="cb87-14"><a href="#cb87-14" aria-hidden="true" tabindex="-1"></a>    model[[target]] <span class="ot">&lt;&lt;-</span> proposalValue                             </span>
 <span id="cb87-15"><a href="#cb87-15" aria-hidden="true" tabindex="-1"></a>    proposalLogProb <span class="ot">&lt;-</span> model<span class="sc">$</span><span class="fu">calculate</span>(calcNodes)             </span>
 <span id="cb87-16"><a href="#cb87-16" aria-hidden="true" tabindex="-1"></a>    logAcceptanceRatio <span class="ot">&lt;-</span> currentLogProb <span class="sc">-</span> proposalLogProb    </span>
-<span id="cb87-17"><a href="#cb87-17" aria-hidden="true" tabindex="-1"></a>    accept <span class="ot">&lt;-</span> <span class="fu">decide</span>(logMHR)                                     </span>
+<span id="cb87-17"><a href="#cb87-17" aria-hidden="true" tabindex="-1"></a>    accept <span class="ot">&lt;-</span> <span class="fu">decide</span>(logAcceptanceRatio)                                     </span>
 <span id="cb87-18"><a href="#cb87-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(accept)                                                   </span>
 <span id="cb87-19"><a href="#cb87-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">copy</span>(<span class="at">from =</span> model, <span class="at">to =</span> mvSaved, <span class="at">row =</span> <span class="dv">1</span>, <span class="at">nodes =</span> calcNodes, <span class="at">logProb =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb87-20"><a href="#cb87-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>                                                         </span>
@@ -1601,10 +1601,10 @@ implement that.</li>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|</code></pre>
 <div class="sourceCode" id="cb102"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Sampling time: &quot;</span>, time_newsampler[<span class="dv">3</span>], <span class="st">&quot;seconds.</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
-<pre><code>## Sampling time:  3.326 seconds.</code></pre>
+<pre><code>## Sampling time:  3.24 seconds.</code></pre>
 <div class="sourceCode" id="cb104"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a><span class="fu">effectiveSize</span>(samples) <span class="sc">/</span> time_newsampler[<span class="dv">3</span>]</span></code></pre></div>
 <pre><code>##        farm_sd length_coef[1] length_coef[2]     sex_int[1]     sex_int[2] 
-##       247.2681       385.6913       290.5776       573.4437       472.8340</code></pre>
+##       253.8314       395.9287       298.2905       588.6647       485.3845</code></pre>
 </div>
 <div id="accessing-more-information-from-a-sampler" class="slide section level1">
 <h1>Accessing more information from a sampler</h1>
@@ -1625,7 +1625,7 @@ from an on-the-fly example.</p>
 ##     ans &lt;- NULL
 ##     invisible(ans)
 ## }
-## &lt;environment: 0x560637b011f8&gt;</code></pre>
+## &lt;environment: 0x55b977d891d0&gt;</code></pre>
 <div class="sourceCode" id="cb108"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a><span class="do">## See where our sampler of interest is in the sampler configuration list.</span></span>
 <span id="cb108-2"><a href="#cb108-2" aria-hidden="true" tabindex="-1"></a>mcmcConf<span class="sc">$</span><span class="fu">printSamplers</span>()</span></code></pre></div>
 <pre><code>## [1]  RW sampler: sex_int[1]
@@ -1756,8 +1756,8 @@ from an on-the-fly example.</p>
 ## function () 
 ## {
 ## }
-## &lt;bytecode: 0x560639cf8568&gt;
-## &lt;environment: 0x560623897750&gt;
+## &lt;bytecode: 0x55b977ff3df0&gt;
+## &lt;environment: 0x55b961b8d4f0&gt;
 ## Field &quot;CobjectInterface&quot;:
 ## An object of class &quot;uninitializedField&quot;
 ## Slot &quot;field&quot;:
@@ -1765,51 +1765,51 @@ from an on-the-fly example.</p>
 ## 
 ## Slot &quot;className&quot;:
 ## [1] &quot;ANY&quot;</code></pre>
-<div class="sourceCode" id="cb112"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run the MCMC (could use runMCMC(cDEmcmc, ...) instead, but time=TRUE is not available via runMCMC)</span></span>
-<span id="cb112-2"><a href="#cb112-2" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span><span class="fu">run</span>(<span class="at">niter =</span> <span class="dv">1000</span>, <span class="at">time =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb112"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Access various internals.  Note that some of these have been reset after adaptation steps.</span></span>
+<span id="cb112-2"><a href="#cb112-2" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span>timesAdapted</span></code></pre></div>
+<pre><code>## [1] 550</code></pre>
+<div class="sourceCode" id="cb114"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb114-1"><a href="#cb114-1" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span>timesAccepted</span></code></pre></div>
+<pre><code>## [1] 0</code></pre>
+<div class="sourceCode" id="cb116"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span>scale</span></code></pre></div>
+<pre><code>## [1] 0.8497252</code></pre>
+<div class="sourceCode" id="cb118"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span>timesRan</span></code></pre></div>
+<pre><code>## [1] 0</code></pre>
+<div class="sourceCode" id="cb120"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at farm_effect in the compiled model</span></span>
+<span id="cb120-2"><a href="#cb120-2" aria-hidden="true" tabindex="-1"></a>cDEmodel<span class="sc">$</span>farm_effect</span></code></pre></div>
+<pre><code>##  [1] -2.92133716  0.21215561  0.65616837  4.09115215  0.06396869 -1.58876126
+##  [7] -4.07606937  0.54597989 -1.66301215  0.84367992 -1.64533480 -1.07036108
+## [13] -0.10604899  2.41037499  1.26271822  0.41793143 -1.48750066  0.84352246
+## [19] -1.84834428  0.14732130  1.65872669  0.10110099  0.84156589  2.82508140</code></pre>
+<div class="sourceCode" id="cb122"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb122-1"><a href="#cb122-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run our sampler 100 times</span></span>
+<span id="cb122-2"><a href="#cb122-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>) cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span><span class="fu">run</span>()</span>
+<span id="cb122-3"><a href="#cb122-3" aria-hidden="true" tabindex="-1"></a><span class="do">## See if there were any updates</span></span>
+<span id="cb122-4"><a href="#cb122-4" aria-hidden="true" tabindex="-1"></a>cDEmodel<span class="sc">$</span>farm_effect</span></code></pre></div>
+<pre><code>##  [1] -2.3494846  0.7840081  1.2280209  4.6630047  0.6358212 -1.0169087
+##  [7] -3.5042169  1.1178324 -1.0911596  1.4155324 -1.0734823 -0.4985086
+## [13]  0.4658035  2.9822275  1.8345707  0.9897839 -0.9156481  1.4153750
+## [19] -1.2764918  0.7191738  2.2305792  0.6729535  1.4134184  3.3969339</code></pre>
+<div class="sourceCode" id="cb124"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb124-1"><a href="#cb124-1" aria-hidden="true" tabindex="-1"></a><span class="do">## See how to look at the mvSaved object from the compiled MCMC</span></span>
+<span id="cb124-2"><a href="#cb124-2" aria-hidden="true" tabindex="-1"></a><span class="do">## (There are more direct ways to access values in mvSaved. See modelValues</span></span>
+<span id="cb124-3"><a href="#cb124-3" aria-hidden="true" tabindex="-1"></a><span class="do">## documentation.)</span></span>
+<span id="cb124-4"><a href="#cb124-4" aria-hidden="true" tabindex="-1"></a><span class="do">## This would show the full object: as.matrix(cDEmcmc$mvSaved)</span></span>
+<span id="cb124-5"><a href="#cb124-5" aria-hidden="true" tabindex="-1"></a><span class="do">## This is what I was looking for in the live session:</span></span>
+<span id="cb124-6"><a href="#cb124-6" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>mvSaved[[<span class="st">&#39;farm_effect&#39;</span>]]</span></code></pre></div>
+<pre><code>##  [1] -2.3494846  0.7840081  1.2280209  4.6630047  0.6358212 -1.0169087
+##  [7] -3.5042169  1.1178324 -1.0911596  1.4155324 -1.0734823 -0.4985086
+## [13]  0.4658035  2.9822275  1.8345707  0.9897839 -0.9156481  1.4153750
+## [19] -1.2764918  0.7191738  2.2305792  0.6729535  1.4134184  3.3969339</code></pre>
+<div class="sourceCode" id="cb126"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a><span class="do">## See time spent in each sampler (this will not include the 100 iterations</span></span>
+<span id="cb126-2"><a href="#cb126-2" aria-hidden="true" tabindex="-1"></a><span class="do">## we did &quot;by hand&quot;, only iterations via cDEmcmc$run(), or runMCMC, which calls</span></span>
+<span id="cb126-3"><a href="#cb126-3" aria-hidden="true" tabindex="-1"></a><span class="do">## cDEmcmc$run).</span></span>
+<span id="cb126-4"><a href="#cb126-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Run the MCMC with timing turned on (only available via `$run`).</span></span>
+<span id="cb126-5"><a href="#cb126-5" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span><span class="fu">run</span>(<span class="at">niter =</span> <span class="dv">1000</span>, <span class="at">time =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|</code></pre>
-<div class="sourceCode" id="cb114"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb114-1"><a href="#cb114-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Access various internals.  Note that some of these have been reset after adaptation steps.</span></span>
-<span id="cb114-2"><a href="#cb114-2" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span>timesAdapted</span></code></pre></div>
-<pre><code>## [1] 50</code></pre>
-<div class="sourceCode" id="cb116"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span>timesAccepted</span></code></pre></div>
-<pre><code>## [1] 0</code></pre>
-<div class="sourceCode" id="cb118"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span>scale</span></code></pre></div>
-<pre><code>## [1] 1.01095</code></pre>
-<div class="sourceCode" id="cb120"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span>timesRan</span></code></pre></div>
-<pre><code>## [1] 0</code></pre>
-<div class="sourceCode" id="cb122"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb122-1"><a href="#cb122-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at farm_effect in the compiled model</span></span>
-<span id="cb122-2"><a href="#cb122-2" aria-hidden="true" tabindex="-1"></a>cDEmodel<span class="sc">$</span>farm_effect</span></code></pre></div>
-<pre><code>##  [1] -3.14350060 -0.81017427 -0.02768033  2.84639374 -0.46307367 -1.66203611
-##  [7] -3.77837303  0.43050825 -2.48814150  1.01128369 -2.21513796 -1.91691408
-## [13] -0.96840478  0.94542880  0.68645524  2.67126361 -3.29379831  1.87975720
-## [19] -3.64259608 -1.81893483  1.73049070 -1.23555698  0.68808223 -0.37433196</code></pre>
-<div class="sourceCode" id="cb124"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb124-1"><a href="#cb124-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Run our sampler 100 times</span></span>
-<span id="cb124-2"><a href="#cb124-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>) cDEmcmc<span class="sc">$</span>samplerFunctions[[<span class="dv">30</span>]]<span class="sc">$</span><span class="fu">run</span>()</span>
-<span id="cb124-3"><a href="#cb124-3" aria-hidden="true" tabindex="-1"></a><span class="do">## See if there were any updates</span></span>
-<span id="cb124-4"><a href="#cb124-4" aria-hidden="true" tabindex="-1"></a>cDEmodel<span class="sc">$</span>farm_effect</span></code></pre></div>
-<pre><code>##  [1] -2.73864389 -0.40531756  0.37717638  3.25125045 -0.05821697 -1.25717940
-##  [7] -3.37351632  0.83536496 -2.08328479  1.41614039 -1.81028125 -1.51205738
-## [13] -0.56354808  1.35028551  1.09131195  3.07612031 -2.88894161  2.28461391
-## [19] -3.23773938 -1.41407813  2.13534741 -0.83070027  1.09293893  0.03052475</code></pre>
-<div class="sourceCode" id="cb126"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a><span class="do">## See how to look at the mvSaved object from the compiled MCMC</span></span>
-<span id="cb126-2"><a href="#cb126-2" aria-hidden="true" tabindex="-1"></a><span class="do">## (There are more direct ways to access values in mvSaved. See modelValues</span></span>
-<span id="cb126-3"><a href="#cb126-3" aria-hidden="true" tabindex="-1"></a><span class="do">## documentation.)</span></span>
-<span id="cb126-4"><a href="#cb126-4" aria-hidden="true" tabindex="-1"></a><span class="do">## This would show the full object: as.matrix(cDEmcmc$mvSaved)</span></span>
-<span id="cb126-5"><a href="#cb126-5" aria-hidden="true" tabindex="-1"></a><span class="do">## This is what I was looking for in the live session:</span></span>
-<span id="cb126-6"><a href="#cb126-6" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span>mvSaved[[<span class="st">&#39;farm_effect&#39;</span>]]</span></code></pre></div>
-<pre><code>##  [1] -2.73864389 -0.40531756  0.37717638  3.25125045 -0.05821697 -1.25717940
-##  [7] -3.37351632  0.83536496 -2.08328479  1.41614039 -1.81028125 -1.51205738
-## [13] -0.56354808  1.35028551  1.09131195  3.07612031 -2.88894161  2.28461391
-## [19] -3.23773938 -1.41407813  2.13534741 -0.83070027  1.09293893  0.03052475</code></pre>
-<div class="sourceCode" id="cb128"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a><span class="do">## See time spent in each sampler (this will not include the 100 iterations</span></span>
-<span id="cb128-2"><a href="#cb128-2" aria-hidden="true" tabindex="-1"></a><span class="do">## we did &quot;by hand&quot;, only iterations via cDEmcmc$run(), or runMCMC, which calls</span></span>
-<span id="cb128-3"><a href="#cb128-3" aria-hidden="true" tabindex="-1"></a><span class="do">## cDEmcmc$run).</span></span>
-<span id="cb128-4"><a href="#cb128-4" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span><span class="fu">getTimes</span>()</span></code></pre></div>
-<pre><code>##  [1] 0.061669 0.048778 0.056362 0.047377 0.002955 0.003369 0.005375 0.007338
-##  [9] 0.002952 0.010570 0.001533 0.003935 0.005819 0.004583 0.005562 0.025548
-## [17] 0.004652 0.003782 0.006034 0.008882 0.003994 0.004259 0.005141 0.001688
-## [25] 0.004694 0.003879 0.004384 0.002982 0.002254 0.107182</code></pre>
+<div class="sourceCode" id="cb128"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span><span class="fu">getTimes</span>()</span></code></pre></div>
+<pre><code>##  [1] 0.042857 0.033821 0.039454 0.032433 0.002184 0.002234 0.003599 0.004970
+##  [9] 0.002007 0.007244 0.001015 0.002355 0.003771 0.003106 0.003752 0.016956
+## [17] 0.003150 0.002552 0.004112 0.005811 0.002669 0.002882 0.003489 0.001292
+## [25] 0.003264 0.002723 0.003047 0.002103 0.001512 0.072820</code></pre>
 </div>
 
   <!-- dynamically load mathjax for compatibility with self-contained -->
