@@ -227,7 +227,7 @@ We can just create, compile, and use the model.
 set.seed(1)
 modelFlexMarg <- nimbleModel(DEcodeFlexMarg, data = DEdata, 
                      constants = DEconstants, 
-                     inits = c(DEinits_vals, list(pi = runif(1), 
+                     inits = c(DEinits, list(pi = runif(1), 
                                mu = rnorm(2), sigma = rep(1, 2))))
 
 modelFlexMarg$calculate('farm_effect')

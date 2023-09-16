@@ -173,12 +173,12 @@ For illustration, let's consider the original model, but without centering the c
 DEconstants_uncLen <- DEconstants 
 DEconstants_uncLen$length <- DeerEcervi$Length 
 
-# DEinits_vals <- DEinits()
-DEinits_vals_uncLen <- DEinits_vals
-DEinits_vals_uncLen$sex_int <- c(-8, -8)
+# DEinits <- DEinitialize()
+DEinits_uncLen <- DEinits
+DEinits_uncLen$sex_int <- c(-8, -8)
 
 modelUncLen = nimbleModel(DEcode, constants = DEconstants_uncLen,
-                          inits = DEinits_vals_uncLen, data = DEdata)
+                          inits = DEinits_uncLen, data = DEdata)
 ```
 
 ```{r, uncen-mcmc, fig.cap='', fig.width=12, fig.height=5}
@@ -204,7 +204,7 @@ After some trial and error, it turns out that modifying the defaults for the blo
 
 ```{r, fig.cap='', fig.width=12, fig.height=5}
 modelBlock = nimbleModel(DEcode, constants = DEconstants_uncLen,
-                         inits = DEinits_vals_uncLen, data = DEdata)
+                         inits = DEinits_uncLen, data = DEdata)
 cmodelBlock <- compileNimble(modelBlock)
 mcmcConfBlock <- configureMCMC(modelBlock)
 mcmcConfBlock$removeSamplers(c('sex_int','length_coef'))
@@ -270,7 +270,7 @@ DEcode_hmc <- nimbleCode({
 
 
 modelHMC <- nimbleModel(DEcode_hmc, constants = DEconstants,
-              inits = DEinits_vals, data = DEdata, buildDerivs = TRUE)
+              inits = DEinits, data = DEdata, buildDerivs = TRUE)
 cmodelHMC <- compileNimble(modelHMC)
 
 hmc <- buildHMC(modelHMC)

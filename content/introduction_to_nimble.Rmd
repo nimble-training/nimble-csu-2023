@@ -38,7 +38,7 @@ library(coda)
 
 # When might you use NIMBLE?
 
-<font size="3">
+<font size="5">
 Use cases:
 
 - Experimenting with different samplers.
@@ -125,7 +125,7 @@ DEcode <- nimbleCode({
    
     - `dnorm(mean = mu, sd = sigma)`                    
     - `dnorm(mean = mu, var = sigma_squared)`  
-    - `dnorm(mean = mu, tau = tau)` # (tau = precision)   DEFAULT IF NOT NAMED   
+    - `dnorm(mean = mu, tau = tau)` # precision (default if not named)
     
 - Distributions with alternative parameterizations are listed in Table 5.2 of [User Manual Section 5.2.4](https://r-nimble.org/html_manual/cha-writing-models.html#subsec:dists-and-functions)
 
@@ -145,8 +145,8 @@ for(i in 1:num_farms) {
 1. Build the model.  It is an R object.
 2. Build the MCMC.
 
-    - 2a. Configure the MCMC.
-    - 2b. Customize the MCMC.
+    - 2a. Configure the MCMC. (optional)
+    - 2b. Customize the MCMC. (optional)
     - 2c. Build the MCMC.
 
 3. Compile the model and MCMC.
@@ -165,19 +165,9 @@ DEconstants <- list(num_farms = 24,
                     sex = DeerEcervi$Sex,
                     farm_ids = DeerEcervi$farm_ids)
 
-DEmodel <- nimbleModel(DEcode,
-                       constants = DEconstants)
-```
-
-
-We can set data and inits at the `nimbleModel` step (above) or now:
-
-```{r}
 DEdata <- list(Ecervi_01 = DeerEcervi$Ecervi_01)
-# This sets the values and *flags the nodes as data*:
-DEmodel$setData(DEdata)
 
-DEinits <- function() {
+DEinitialize <- function() {
   list(sex_int = c(0, 0),
        length_coef = c(0, 0),
        farm_sd = 1,
@@ -185,8 +175,19 @@ DEinits <- function() {
 }
 
 set.seed(123)
-DEinits_vals <- DEinits()
-DEmodel$setInits(DEinits_vals)
+DEinits <- DEinitialize()
+
+DEmodel <- nimbleModel(DEcode,
+                       constants = DEconstants,
+                       data = DEdata,
+                       inits = DEinits)
+```
+
+
+We can also set the data and inits after building the model
+using `DEmodel$setData` and `DEmodel$setInits`.
+
+```{r}
 ```
 
 # GLMM Example: 2. Build the MCMC

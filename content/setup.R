@@ -43,14 +43,9 @@ DEconstants <- list(num_farms = 24,
                     sex = DeerEcervi$Sex,
                     farm_ids = DeerEcervi$farm_ids)
 
-DEmodel <- nimbleModel(DEcode,
-                       constants = DEconstants)
-
 DEdata <- list(Ecervi_01 = DeerEcervi$Ecervi_01)
-# This sets the values and *flags the nodes as data*:
-DEmodel$setData(DEdata)
 
-DEinits <- function() {
+DEinitialize <- function() {
   list(sex_int = c(0, 0),
        length_coef = c(0, 0),
        farm_sd = 1,
@@ -58,7 +53,13 @@ DEinits <- function() {
 }
 
 set.seed(123)
-DEinits_vals <- DEinits()
-DEmodel$setInits(DEinits_vals)
+DEinits <- DEinitialize()
+
+DEmodel <- nimbleModel(DEcode,
+                       constants = DEconstants,
+                       data = DEdata,
+                       inits = DEinits)
+
+
 
 
