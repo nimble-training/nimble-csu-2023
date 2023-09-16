@@ -19,12 +19,15 @@ slides > slide {
 knitr::opts_chunk$set(echo = TRUE)
 eval <- TRUE
 library(nimble)
+library(coda)
 source('setup.R')
 ```
 
 # Introduction 
 
-*nimbleFunctions* are at the heart of NIMBLE. They are the way that algorithms are implemented. They can also be used for
+*nimbleFunctions* are at the heart of NIMBLE. They are the way that algorithms are implemented.
+
+They can also be used for
 
  - user-defined distributions (already seen),
  - user-defined functions (already seen),
@@ -128,7 +131,7 @@ calcDeps_regr$run()
 # nimbleFunction class definitions (i.e., with setup code):
 
 - `setup` is always executed in R.
-    - Typically one-time, high-level processing such as querying model structure.
+    - One-time, typically high-level processing such as querying model structure.
 - `run` and other methods can be run uncompiled (in R) or compiled (via C++).
     - Typically repeated "actual algorithm" calculations such as MCMC sampler updates.
     - Can operate models.
@@ -167,7 +170,7 @@ objective <- nimbleFunction(
         returnType(double(0))
         if(length(par) != n)
            stop("Input length does not match number of parameter elements.")
-        values(model, nodes) <<- par   # assignment into non-local (nf) variables 
+        values(model, nodes) <<- par       # assignment into non-local (nf) variables 
         ans <- model$calculate(calcNodes)  # local assignment
         return(ans)
     }
@@ -191,6 +194,8 @@ Now let's try using it (we'll need to ignore the warnings caused by negative sd 
 
 ```{r, regr-optimize}
 set.seed(1)
+origWarn <- options()$warn
+options(warn = -1)   ## turn off the warnings to keep the html cleaner
 system.time(optR <- optim(c(0, 0, 1), rObjective$run, control = list(fnscale = -1)))
 system.time(optC <- optim(c(0, 0, 1), cObjective$run, control = list(fnscale = -1)))
 optR
@@ -245,8 +250,6 @@ Now let's try using it. We need to use a derivative-based optimization algorithm
 
 ```{r, regr-optimize-grad}
 set.seed(1)
-origWarn <- options()$warn
-options(warn = -1)   ## turn off the warnings to keep the output cleaner
 system.time(optR <- optim(c(0, 0, 1), rObjective$fun, gr = rObjective$grad,
                  method = "BFGS", control = list(fnscale = -1)))
 options(warn = origWarn)
@@ -256,7 +259,7 @@ optR
 optC
 ```
 
-So the speed is not any better than without using the gradient, but notice that fewer function evaluations occurred.
+So the (compiled) speed improvement is not compelling here, but notice that fewer function evaluations occurred.
 
 Again, we'd want to deal with the constraint on `sigma`. NIMBLE's AD system provides a convenient way to automatically do transformations to unconstrained spaces.
 
@@ -317,7 +320,7 @@ Make Deer E. cervi model with derivative tools built.
 DEmodel <- nimbleModel(DEcode,
                        data = DEdata,
                        constants = DEconstants,
-                       inits = DEinits_vals,
+                       inits = DEinits,
                        buildDerivs = TRUE)
 
 cDEmodel <- compileNimble(DEmodel)
@@ -360,7 +363,7 @@ simple_1D_Laplace <- nimbleFunction(
     },
     # Put the pieces together:
     Laplace = function() {
-      # Use correct value of random effect as initial value
+      # Use current value of random effect as initial value
       # for optimization.
       x_init <- numeric(length = 1)
       x_init[1] <- model[[RE_node]]
@@ -459,11 +462,11 @@ How do the parameters match between `nimble` and `lme4` results?
 
 `lme4` is using treatment contrasts (Sex1 is the "reference" group and Sex2 parameters are differences from Sex1).
 
-* First parameter from `nimble` is the Sex1 intercept, which is the `(Intercept)` from `lme4`.
-* Second parameter from `nimble` is the Sex2 intercept, which is `(Intercept)` + `fSex2` from `lme4`.
-* Third parameter from `nimble` is the Sex1 coefficient for `ctrLength`.
-* Fourth parameter from `nimble` is the Sex2 coefficient for `ctrLength`, which is `ctrLength` + `ctrLength:fSex2` from `lme4`.
-* Fifth parameter from `nimble` is the farm-effect standard deviation.
+* `sex_int[1]` is the `(Intercept)` from `lme4`.
+* `sex_int[2]` is `(Intercept)` + `fSex2` from `lme4`.
+* `length_coef[1]` is the Sex1 coefficient for `ctrLength`.
+* `length_coef[2]` is `ctrLength` + `ctrLength:fSex2` from `lme4`.
+* (last nimble parameter is `farm_sd`)
 
 # Design of `nimble`'s MCMC system
 
@@ -536,8 +539,8 @@ ourMH <- nimbleFunction(
   name = 'ourMH',                              # Convenient for class name of R reference class and generated C++ class
   contains = sampler_BASE,                     # There is a simple class inheritance system.
   setup = function(model, mvSaved, target, control) {                 # REQUIRED setup arguments
-    scale <- if(!is.null(control$scale)) control$scale else 1         # Typical extraction of control choices
-    calcNodes <- model$getDependencies(target)                        # Typical query of model structure
+    scale <- if(!is.null(control$scale)) control$scale else 1         # typical extraction of control choices
+    calcNodes <- model$getDependencies(target)                        # typical query of model structure
   },                                                                  # setup can't return anything
   run = function() {
     currentValue <- model[[target]]                                   # extract current value
@@ -548,13 +551,13 @@ ourMH <- nimbleFunction(
     logAcceptanceRatio <- proposalLogProb - currentLogProb            # log acceptance ratio
     # Alternative:
     # logAcceptanceRatio <- model$calculateDiff(calcNodes)
-    accept <- decide(logAcceptanceRatio)                                          # utility function to generate accept/reject decision
+    accept <- decide(logAcceptanceRatio)                              # utility function to generate accept/reject decision
     if(accept)                                                        # accept: synchronize model -> mvSaved
       copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
     else                                                              # reject: synchronize mvSaved -> model
       copy(from = mvSaved, to = model, row = 1, nodes = calcNodes, logProb = TRUE)
   },
-  methods = list(                              # required method for sampler_BASE base class
+  methods = list(                                                     # required method for sampler_BASE base class
     reset = function() {}
   )
 )
@@ -586,7 +589,7 @@ ourMH <- nimbleFunction(
 
 Version with `browser()`s
 
-```{r}
+```{r, eval=FALSE}
 ourMH_debug <- nimbleFunction(
   name = 'ourMH_debug',
   contains = sampler_BASE,
@@ -617,7 +620,7 @@ ourMH_debug <- nimbleFunction(
 
 # Stepping through uncompiled execution
 
-```{r}
+```{r, eval=FALSE}
 mcmcConf <- configureMCMC(DEmodel, nodes = NULL) ## Make an empty configuration
 mcmcConf$addSampler(type = "ourMH_debug", target = 'farm_effect[1]')
 ```
@@ -634,7 +637,7 @@ Let's work on a more involved case where we can't make such simple modifications
 
 We'll put the pieces together for the E. cervi example as follows:
 
-- Use the original parameterization.
+- Use the original parameterization (that we used for our very first MCMC).
 - Write a sampler that proposes to add $\delta \sim N(0, \mbox{scale})$ to the two sex-specific intercepts and to subtract the same $\delta$ from every `farm_effect[i]` ($i = 1 \ldots 24$).
 - This is a scalar sampler in rotated coordinates.
 - The coordinate transformation is linear, so there is no determinant of a Jacobian matrix to incorporate.  In general one needs to be careful to use distribution theory correctly if non-linear coordinate transformations are involved.  We are covering the software, not the math.
@@ -653,7 +656,7 @@ ourSampler <- nimbleFunction(
     offsetNodes <- control$offsetNodes
     if(is.null(offsetNodes)) stop("Must provide offsetNodes in control list")
     adaptive            <- if(!is.null(control$adaptive))            control$adaptive            else TRUE
-    adaptInterval       <- if(!is.null(control$adaptInterval))       control$adaptInterval       else 20 #
+    adaptInterval       <- if(!is.null(control$adaptInterval))       control$adaptInterval       else 20 
     adaptFactorExponent <- if(!is.null(control$adaptFactorExponent)) control$adaptFactorExponent else 0.8
     scale               <- if(!is.null(control$scale))               control$scale               else 1
     ## calculation nodes
@@ -716,7 +719,22 @@ mcmcConf$addSampler(target = c('sex_int'),
                     type = ourSampler,
                     control = list(offsetNodes = 'farm_effect'))
 mcmcConf
-mcmc <- buildMCMC(mcmcConf)
+DEmcmc <- buildMCMC(mcmcConf)
+cDEmodel <- compileNimble(DEmodel)
+```
+
+# Let's make an interesting sampler (4)
+
+Results:
+
+```{r}
+## Set internal option to access compiled samplers inside of compiled mcmc for next slide.
+nimbleOptions(buildInterfacesForCompiledNestedNimbleFunctions = TRUE)
+
+cDEmcmc <- compileNimble(DEmcmc, project = DEmodel)
+time_newsampler <- system.time(samples <- runMCMC(cDEmcmc, niter = 11000, nburnin = 1000))
+cat("Sampling time: ", time_newsampler[3], "seconds.\n")
+effectiveSize(samples) / time_newsampler[3]
 ```
 
 # Accessing more information from a sampler
@@ -724,42 +742,36 @@ mcmc <- buildMCMC(mcmcConf)
 One might be interested in  accessing compiled internals.  Here is code from an on-the-fly example.
 
 ```{r}
-## Make compiled model
-cDEmodel <- compileNimble(DEmodel)
-## Set internal option to access compiled samplers inside of compiled mcmc below
-nimbleOptions(buildInterfacesForCompiledNestedNimbleFunctions = TRUE)
-## Compile the MCMC
-cmcmc <- compileNimble(mcmc)
-## See that the run function is an interface to compiled code via .Call
-cmcmc$run
-## See where our sampler of interest is in the sampler configuration list
+## See that the run function is an interface to compiled code via .Call.
+cDEmcmc$run
+## See where our sampler of interest is in the sampler configuration list.
 mcmcConf$printSamplers()
-## And see that the built and compiled samplerFunctions are in the same order
-cmcmc$samplerFunctions
+## (The built and compiled samplerFunctions are in the same order).
+cDEmcmc$samplerFunctions
 
-## Run the MCMC (could use runMCMC(cmcmc, ...) instead, but time=TRUE is not available via runMCMC)
-cmcmc$run(niter = 1000, time = TRUE)
+## Run the MCMC (could use runMCMC(cDEmcmc, ...) instead, but time=TRUE is not available via runMCMC)
+cDEmcmc$run(niter = 1000, time = TRUE)
 ## Access various internals.  Note that some of these have been reset after adaptation steps.
-cmcmc$samplerFunctions[[30]]$timesAdapted
-cmcmc$samplerFunctions[[30]]$timesAccepted
-cmcmc$samplerFunctions[[30]]$scale
-cmcmc$samplerFunctions[[30]]$timesRan
+cDEmcmc$samplerFunctions[[30]]$timesAdapted
+cDEmcmc$samplerFunctions[[30]]$timesAccepted
+cDEmcmc$samplerFunctions[[30]]$scale
+cDEmcmc$samplerFunctions[[30]]$timesRan
 ## Look at farm_effect in the compiled model
 cDEmodel$farm_effect
 ## Run our sampler 100 times
-for(i in 1:100) cmcmc$samplerFunctions[[30]]$run()
+for(i in 1:100) cDEmcmc$samplerFunctions[[30]]$run()
 ## See if there were any updates
 cDEmodel$farm_effect
 ## See how to look at the mvSaved object from the compiled MCMC
 ## (There are more direct ways to access values in mvSaved. See modelValues
 ## documentation.)
-## This would show the full object: as.matrix(cmcmc$mvSaved)
+## This would show the full object: as.matrix(cDEmcmc$mvSaved)
 ## This is what I was looking for in the live session:
-cmcmc$mvSaved[['farm_effect']]
+cDEmcmc$mvSaved[['farm_effect']]
 ## See time spent in each sampler (this will not include the 100 iterations
-## we did "by hand", only iterations via cmcmc$run(), or runMCMC, which calls
-## cmcmc$run).
-cmcmc$getTimes()
+## we did "by hand", only iterations via cDEmcmc$run(), or runMCMC, which calls
+## cDEmcmc$run).
+cDEmcmc$getTimes()
 ```
 
 

@@ -41,7 +41,7 @@ User-defined **distributions** return a log probability (density), e.g.
 ```{r, eval=FALSE}
 nimbleCode({
   # other code not shown
-  y[i] ~ dmy_distribution(param[i], theta[i])
+  y[i] ~ dmy_distribution(omega, theta[i])
   # other code not shown
 })
 ```
@@ -82,7 +82,7 @@ Here's the marginalized result, with only 3 parameters.
 
 $$ y_i \sim N(\mu_0, \sigma^2 + \sigma_0^2) $$
 
-(If we want inference on $\mu_i, i=1,\ldots,n$ we need to sample the latent states conditional on the data and the MCMC draws of $\mu_0, \sigma_0^2, \sigma^2$. We'll work on this in Module 9b.)
+(Of course if we want inference on $\mu_i, i=1,\ldots,n$ we need to sample the latent states conditional on the data and the MCMC draws of $\mu_0, \sigma_0^2, \sigma^2$ in a post-MCMC calculation.)
 
 # Generalizing the E. cervi example
 
@@ -124,7 +124,7 @@ DEcodeFlex <- nimbleCode({
 })
 ```
 
-Note: here `ind[i]` is a non-constant index (unlike its use earlier). It's a latent state, subject to MCMC sampling.
+Note: here `ind[i]` is a non-constant index (unlike `sex[i]`). It's a latent state, subject to MCMC sampling.
 
 # Mixture models: identifiability
 
@@ -152,7 +152,12 @@ We can always integrate over finite discrete random variables by summation, so w
 
 The bivariate normal mixture density is: $$ \pi N(\mu_1, \sigma_1) + (1-\pi) N(\mu_2, \sigma_2) $$
 
-In BUGS/JAGS, one needs to use the "zeros trick" with a Poisson distribution and an 'observation' set to 0 to incorporate a non-standard density. That requires some gymnastics and adds nodes to the model graph.
+Notes:
+
+- In BUGS/JAGS, one needs to use the "zeros trick" with a Poisson distribution and an 'observation' set to 0 to incorporate a non-standard density. That requires some gymnastics and adds nodes to the model graph.
+- In Stan, one would have to use the marginalized version as one can't do HMC with discrete parameters.
+
+# Writing the user-defined distribution
 
 In NIMBLE, we write a user-defined distribution using a nimbleFunction. Let's ignore the details for now and just focus on writing the density calculations. 
 
@@ -221,6 +226,8 @@ DEcodeFlexMarg <- nimbleCode({
 })
 ```
 
+# Using the new distribution (cont'd)
+
 We can just create, compile, and use the model. 
 
 ```{r}
@@ -248,12 +255,11 @@ User-defined distributions are simply `nimbleFunction`s that conform to some req
 
 - Naming follows the R prefix convention of 'd' and (optionally) 'r', 'p' and 'q' functions.
 - The 'd' function must have *x* as its first argument, with appropriate type, such as `double(1)` for a vector random variable.
-- All variables in nimble models are doubles, so user-defined distribution and function arguments (and return values) should be non-scalar doubles or scalar double, integer or logical.  (Non-scalar integer or logical should not be used.)
-- The 'd' function must have *log* as its last argument, a logical (or integer) argument for whether the log density is returned or not. It must have `returnType(double(0))` (scalar).
-
+- All variables in nimble models are doubles, so user-defined distribution and function arguments (and return values) should generally be non-scalar doubles or scalar double, integer or logical (doubles generally for parameters). 
+- The 'd' function must have `returnType(double(0))` (scalar).
+- The 'd' function must have *log* as its last argument, a logical (or integer) argument for whether the log of the  density is taken.
     - When called from a model, `log` will always be `1` (`TRUE`).
-
-- The (optional) 'r' function should have *n* as its first argument but need only work for `n=1`.  Otherwise it must have the same arguments as the `d` function (except for `x` and `log`).
+- The (optional) 'r' function should have `n` as its first argument but need only work for `n=1`.  Otherwise it must have the same arguments as the `d` function (except for `x` and `log`).
 - The `returnType` of the 'r' function should be the same as the `x` type of the 'd' function. In other words, if the distribution is for a vector, then random draws should return a vector. 
 
 # User-defined distribution: When do you need 'r', 'p' and/or 'q' functions?
@@ -328,7 +334,7 @@ expcov <- nimbleFunction(
     sigma2 <- sigma*sigma  # calculate once
     for(i in 1:n)
       for(j in 1:n)
-        result[i, j] <- sigma2*exp(-dists[i,j]/rho) # vectorized alternative is given later
+        result[i, j] <- sigma2 * exp(-dists[i,j] / rho) # vectorized alternative is given later
     return(result)
   })
 ```
@@ -418,9 +424,7 @@ But there could be some difference (which will be faster is not clear), as the v
 - "type" means dimensionality (scalar, vector, matrix, 3D array, etc.) and element type (double, integer, logical).
 - (You can also define `nimbleList` types, but these can't be used in models.)
 
-### Two challenges (sources of confusion) about types:
-
-#### Dynamic vs. static typing
+# Type challenge (1): Dynamic vs. static typing
 
 - R uses dynamic typing.  The type of `x` can be changed by re-assignment. Everything is just an "R object."
 - C++, and therefore `nimbleFunction` `run` code, uses static typing.  Types are determined by first assignment.
@@ -435,12 +439,12 @@ foo <- nimbleFunction(
 )
 ```
 
-#### Length-one vectors vs scalars; etc.
+# Type challenge (2): Length-one vectors vs scalars; etc.
 
 - R lacks a true scalar type.  Scalars are simply vectors of length 1.
 - C++ has true scalars, and `nimbleFunction`s use them for efficiency.
 - R sometimes dynamically treats a one-row or one-column matrix as a vector.
-- `nimbleFuntion` code requires explicit dropping of dimensions.
+- `nimbleFunction` code requires explicit dropping of dimensions.
 
 ```
 foo <- nimbleFunction(
@@ -480,11 +484,11 @@ foo <- nimbleFunction(
 
 # Calling external code
 
-Suppose we want to do some calculation that is hard or impossible to implement in the NIMBLE DSL (i.e., the functionality that is available in run code that NIMBLE can compile to C++).
+Suppose we want to do some calculation that is hard, time-consuming, or impossible to implement in the NIMBLE DSL (i.e., the functionality that is available in run code that NIMBLE can compile to C++).
 
- - We can actually call arbitrary R code from within run code.
+ - We can actually call arbitrary R code from within run code via `nimbleRcall`.
       - The basic idea of using `nimbleRcall` is to create a wrapper around an R function and use the wrapper in your model code.
- - Or we can call C/C++ code from within run code.
+ - Or we can call C/C++ code from within run code via `nimbleExternalCall`.
       - The basic idea of using `nimbleExternalCall` is to create a wrapper around a C/C++ function and use the wrapper in your model code. You'll need to provide .h and .o files for the C code.
  - One could also use either an R or C/C++ wrapper to access code/functionality in additional languages.
 

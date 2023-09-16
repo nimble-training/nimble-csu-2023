@@ -187,8 +187,6 @@ DEmodel <- nimbleModel(DEcode,
 We can also set the data and inits after building the model
 using `DEmodel$setData` and `DEmodel$setInits`.
 
-```{r}
-```
 
 # GLMM Example: 2. Build the MCMC
 
@@ -227,7 +225,7 @@ WAIC <- DEresults$WAIC
 ```
 
 
-# GLMM Example: Look at results:
+# GLMM Example: Results
 
 
 There are many packages for summarizing and plotting MCMC samples.  NIMBLE does not try to re-invent these wheels.
@@ -238,19 +236,18 @@ We'll simply use `coda` and basic graphics in this short course.
 # We haven't provided coda figures, but you can make make them if you want.
 library(coda)
 pdf("Ecervi_samples_coda.pdf")
-plot(as.mcmc(samples1))
+plot(as.mcmc(samples))
 dev.off()
 ```
 
 
-# GLMM Example: Managing the run at the lowest level with `mcmc$run`"
+# GLMM Example: Managing the run at the lowest level with `mcmc$run`
 
 Starting from a compiled MCMC, we can also do this:
 
-```{r}
+```{r, eval=FALSE}
 cDEmcmc$run(niter = 11000, nburnin=1000)
-samples3 <- as.matrix(cDEmcmc$mvSamples)
-summary(samples3)
+samples2 <- as.matrix(cDEmcmc$mvSamples)
 cDEmcmc$getWAIC()
 ```
 
@@ -259,8 +256,8 @@ cDEmcmc$getWAIC()
 
 ### Constants are values needed to define model relationships
 
-- Index ranges like `N`
-- Constant indexing vectors
+- Index ranges like `N`.
+- Constant indexing vectors.
 - Constants must be provided when creating a model with `nimbleModel`.
 
 ### Data represents a flag on the role a node plays in the model
@@ -272,7 +269,7 @@ cDEmcmc$getWAIC()
 ### Providing data and constants together.
 
 - Data and constants can be provided together **as `constants`**.
-- It would be slightly easier for BUGS/JAGS users to call this "data", but that would blur the concepts.  
+   - For BUGS/JAGS users, it would be easier to call this "data", but that would blur the concepts.  
 - NIMBLE will usually disambiguate data when it is provided as constants.
 
 ### What are covariates and other non-parameters/non-observations?
@@ -300,12 +297,12 @@ for(i in 1:num_animals) {
 
 Particularly in ecological models, indexing can get very complicated.
 
-The farm grouping above is "ragged" (as is the sex grouping). If the number of observations per farm were constant (aka, "regular", "rectangular"), we could have something like this (ignoring sex and length):
+The farm grouping above is "ragged" (as is the sex grouping). If the number of observations per farm were constant (aka, "regular", "rectangular"), we could have something like this (ignoring the stratification by sex):
 
 ```{r, eval=FALSE}
 for(j in 1:num_farms) 
   for(i in 1:num_animals_per_farm) {
-    logit(disease_probability[j, i]) <- farm_effect[j]
+    logit(disease_probability[j, i]) <- int + length_coef * cLength[i] + farm_effect[j]
     Ecervi_01[j, i] ~ dbern(disease_probability[j, i])
   }
 ```
@@ -348,11 +345,8 @@ model <- nimbleModel(code,
                                   x = c(0.1, 0.2, 0.3, 0.4)))
 ```
 
-`x` values are neither observations ('data') nor parameters. `x` can also be provided in `constants` (this is generally best, unless you plan to change `x`) or in `data` (for consistency with WinBUGS/JAGS).
-
 # Draw the graph
 
-This was done with package `igraph`.
 ```{r, linmodel-graph, echo = FALSE}
 layout <- matrix(ncol = 2, byrow = TRUE,
    # These seem to be rescaled to fit in the plot area,
@@ -392,7 +386,7 @@ plot(model$graph, vertex.shape = "crectangle",
      edge.color = edge.color)
 ```
 
-- Think of each line of BUGS language code as declaring one or mode *nodes*.
+Think of each line of model code as declaring one or more *nodes*.
 
 # Get and set values
 
@@ -406,7 +400,7 @@ model$x
 
 This can be done with a compiled model too.
 
-# You can even get and set data values
+# You can also get and set data values
 
 ```{r}
 model$y
@@ -416,13 +410,16 @@ model$y
 
 Useful for simulation studies...
 
-# Get names of nodes in the graph
+# Querying the graph
+
+Get the names of nodes in the model
 
 ```{r}
 model$getNodeNames()
 ```
 
-## Get types of nodes
+Get types of nodes
+
 ```{r}
 model$getNodeNames(dataOnly = TRUE)
 ```
@@ -436,7 +433,9 @@ model$isData('y')
 model$isData('x')
 ```
 
-# Get node relationships
+# Querying the graph (cont'd)
+
+Get node relationships
 
 ```{r}
 model$getDependencies("x[2]")
@@ -459,7 +458,9 @@ Results from `model$getDependencies` are in *topologically sorted* order:
 - If you calculate them in order, you'll get correct results.
 - E.g., `predicted.y[2]` comes before `y[2]`.
 
-Consider setting up a Metropolis-Hastings, slice, or Hamiltonian sampler on a subset of nodes in the model. Behind the scenes, `getDependencies` is needed. 
+Consider setting up a Metropolis-Hastings, slice, or Hamiltonian sampler on a subset of nodes in the model. Behind the scenes, `getDependencies` is needed.
+
+Model structure is critical for various other algorithms (e.g., determining latent nodes for SMC or Laplace approximation).
 
 # Nodes vs. variables
 
@@ -482,7 +483,8 @@ code2 <- nimbleCode({
   sigma ~ dunif(0, 100)
   predicted.y[1:4] <- intercept + slope * x[1:4] # vectorized node
   for(i in 1:4) {
-    # predicted.y[i] <- intercept + slope * x[i] # scalar nodes (earlier model version)
+    # scalar nodes (earlier model version):
+    # predicted.y[i] <- intercept + slope * x[i] 
     y[i] ~ dnorm(predicted.y[i], sd = sigma)
   }
 })
@@ -495,7 +497,9 @@ model2 <- nimbleModel(code2,
                                    x = c(0.1, 0.2, 0.3, 0.4)))
 ```
 
-## Look at nodes in the vectorized model
+# How vectorizing changes nodes (cont'd)
+
+The nodes in the vectorized model
 
 ```{r}
 model2$getNodeNames()
@@ -537,9 +541,9 @@ model2$simulate('sigma')
 model2$sigma
 ```
 
-Data values are protected from simulation unless you are sure.
+# Data values are protected from simulation (unless you are sure)
 
-(The following is not good model-generic programming. More in the next few slides.)
+
 
 ```{r}
 model2$y
@@ -548,6 +552,8 @@ model2$y
 model2$simulate('y', includeData = TRUE) ## will over-write data nodes
 model2$y
 ```
+
+(The code in these last two slides is not good model-generic programming. More in the next few slides.)
 
 # Understanding *lifted nodes*
 
@@ -572,7 +578,10 @@ model3 <- nimbleModel(code3,
                                    x = c(0.1, 0.2, 0.3, 0.4)))
 ```
 
-## Look at the nodes
+# Understanding *lifted nodes* (cont'd)
+
+Look at the nodes:
+
 ```{r}
 model3$getNodeNames()
 ```
@@ -601,7 +610,7 @@ summary(model3$y)
 
 # Model-generic programming
 
-Say we want a function that simulates all parts of a model that depend on some input nodes and then returns the corresponding summed log probability.  I will call this part of the model "downstream".
+Say we want a function that simulates all parts of a model that depend on some input nodes and then returns the corresponding summed log probability.  I will call this part of the model *downstream*.
 
 ```{r, generic-simulate}
 simulate_downstream <- function(model, nodes) {

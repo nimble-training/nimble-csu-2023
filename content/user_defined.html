@@ -553,7 +553,7 @@ calculations, e.g.</p>
 (density), e.g.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nimbleCode</span>({</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># other code not shown</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  y[i] <span class="sc">~</span> <span class="fu">dmy_distribution</span>(param[i], theta[i])</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  y[i] <span class="sc">~</span> <span class="fu">dmy_distribution</span>(omega, theta[i])</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># other code not shown</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div>
 </div>
@@ -605,10 +605,10 @@ offsets some of the benefits above.</li>
 <p>Here’s the marginalized result, with only 3 parameters.</p>
 <p><span class="math display">\[ y_i \sim N(\mu_0, \sigma^2 +
 \sigma_0^2) \]</span></p>
-<p>(If we want inference on <span class="math inline">\(\mu_i,
+<p>(Of course if we want inference on <span class="math inline">\(\mu_i,
 i=1,\ldots,n\)</span> we need to sample the latent states conditional on
 the data and the MCMC draws of <span class="math inline">\(\mu_0,
-\sigma_0^2, \sigma^2\)</span>. We’ll work on this in Module 9b.)</p>
+\sigma_0^2, \sigma^2\)</span> in a post-MCMC calculation.)</p>
 </div>
 <div id="generalizing-the-e.-cervi-example" class="slide section level1">
 <h1>Generalizing the E. cervi example</h1>
@@ -648,8 +648,8 @@ move the intercept for sex 1 into the mixture.</p>
 <span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    Ecervi_01[i] <span class="sc">~</span> <span class="fu">dbern</span>(disease_probability[i])</span>
 <span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div>
-<p>Note: here <code>ind[i]</code> is a non-constant index (unlike its
-use earlier). It’s a latent state, subject to MCMC sampling.</p>
+<p>Note: here <code>ind[i]</code> is a non-constant index (unlike
+<code>sex[i]</code>). It’s a latent state, subject to MCMC sampling.</p>
 </div>
 <div id="mixture-models-identifiability" class="slide section level1">
 <h1>Mixture models: identifiability</h1>
@@ -673,10 +673,18 @@ summation, so we can integrate over the <code>ind[i]</code> variables,
 which take values of 0 or 1.</p>
 <p>The bivariate normal mixture density is: <span class="math display">\[ \pi N(\mu_1, \sigma_1) + (1-\pi) N(\mu_2,
 \sigma_2) \]</span></p>
-<p>In BUGS/JAGS, one needs to use the “zeros trick” with a Poisson
+<p>Notes:</p>
+<ul>
+<li>In BUGS/JAGS, one needs to use the “zeros trick” with a Poisson
 distribution and an ‘observation’ set to 0 to incorporate a non-standard
 density. That requires some gymnastics and adds nodes to the model
-graph.</p>
+graph.</li>
+<li>In Stan, one would have to use the marginalized version as one can’t
+do HMC with discrete parameters.</li>
+</ul>
+</div>
+<div id="writing-the-user-defined-distribution" class="slide section level1">
+<h1>Writing the user-defined distribution</h1>
 <p>In NIMBLE, we write a user-defined distribution using a
 nimbleFunction. Let’s ignore the details for now and just focus on
 writing the density calculations.</p>
@@ -726,11 +734,14 @@ if <code>dnormmix2</code> were a distribution that NIMBLE provides.</p>
 <span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    Ecervi_01[i] <span class="sc">~</span> <span class="fu">dbern</span>(disease_probability[i])</span>
 <span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div>
+</div>
+<div id="using-the-new-distribution-contd" class="slide section level1">
+<h1>Using the new distribution (cont’d)</h1>
 <p>We can just create, compile, and use the model.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>modelFlexMarg <span class="ot">&lt;-</span> <span class="fu">nimbleModel</span>(DEcodeFlexMarg, <span class="at">data =</span> DEdata, </span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">constants =</span> DEconstants, </span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">inits =</span> <span class="fu">c</span>(DEinits_vals, <span class="fu">list</span>(<span class="at">pi =</span> <span class="fu">runif</span>(<span class="dv">1</span>), </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">inits =</span> <span class="fu">c</span>(DEinits, <span class="fu">list</span>(<span class="at">pi =</span> <span class="fu">runif</span>(<span class="dv">1</span>), </span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                               <span class="at">mu =</span> <span class="fu">rnorm</span>(<span class="dv">2</span>), <span class="at">sigma =</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="dv">2</span>))))</span></code></pre></div>
 <pre><code>## Defining model</code></pre>
 <pre><code>##   [Note] Registering &#39;dnormmix2&#39; as a distribution based on its use in BUGS code. If you make changes to the nimbleFunctions for the distribution, you must call &#39;deregisterDistributions&#39; before using the distribution in BUGS code for those changes to take effect.</code></pre>
@@ -765,30 +776,32 @@ function of distances).</li>
 <p>User-defined distributions are simply <code>nimbleFunction</code>s
 that conform to some requirements.</p>
 <ul>
-<li><p>Naming follows the R prefix convention of ‘d’ and (optionally)
-‘r’, ‘p’ and ‘q’ functions.</p></li>
-<li><p>The ‘d’ function must have <em>x</em> as its first argument, with
+<li>Naming follows the R prefix convention of ‘d’ and (optionally) ‘r’,
+‘p’ and ‘q’ functions.</li>
+<li>The ‘d’ function must have <em>x</em> as its first argument, with
 appropriate type, such as <code>double(1)</code> for a vector random
-variable.</p></li>
-<li><p>All variables in nimble models are doubles, so user-defined
-distribution and function arguments (and return values) should be
-non-scalar doubles or scalar double, integer or logical. (Non-scalar
-integer or logical should not be used.)</p></li>
-<li><p>The ‘d’ function must have <em>log</em> as its last argument, a
-logical (or integer) argument for whether the log density is returned or
-not. It must have <code>returnType(double(0))</code> (scalar).</p>
+variable.</li>
+<li>All variables in nimble models are doubles, so user-defined
+distribution and function arguments (and return values) should generally
+be non-scalar doubles or scalar double, integer or logical (doubles
+generally for parameters).</li>
+<li>The ‘d’ function must have <code>returnType(double(0))</code>
+(scalar).</li>
+<li>The ‘d’ function must have <em>log</em> as its last argument, a
+logical (or integer) argument for whether the log of the density is
+taken.
 <ul>
 <li>When called from a model, <code>log</code> will always be
 <code>1</code> (<code>TRUE</code>).</li>
 </ul></li>
-<li><p>The (optional) ‘r’ function should have <em>n</em> as its first
+<li>The (optional) ‘r’ function should have <code>n</code> as its first
 argument but need only work for <code>n=1</code>. Otherwise it must have
 the same arguments as the <code>d</code> function (except for
-<code>x</code> and <code>log</code>).</p></li>
-<li><p>The <code>returnType</code> of the ‘r’ function should be the
-same as the <code>x</code> type of the ‘d’ function. In other words, if
-the distribution is for a vector, then random draws should return a
-vector.</p></li>
+<code>x</code> and <code>log</code>).</li>
+<li>The <code>returnType</code> of the ‘r’ function should be the same
+as the <code>x</code> type of the ‘d’ function. In other words, if the
+distribution is for a vector, then random draws should return a
+vector.</li>
 </ul>
 </div>
 <div id="user-defined-distribution-when-do-you-need-r-p-andor-q-functions" class="slide section level1">
@@ -878,7 +891,7 @@ model code.</p>
 <span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    sigma2 <span class="ot">&lt;-</span> sigma<span class="sc">*</span>sigma  <span class="co"># calculate once</span></span>
 <span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n)</span>
 <span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span>(j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n)</span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>        result[i, j] <span class="ot">&lt;-</span> sigma2<span class="sc">*</span><span class="fu">exp</span>(<span class="sc">-</span>dists[i,j]<span class="sc">/</span>rho) <span class="co"># vectorized alternative is given later</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>        result[i, j] <span class="ot">&lt;-</span> sigma2 <span class="sc">*</span> <span class="fu">exp</span>(<span class="sc">-</span>dists[i,j] <span class="sc">/</span> rho) <span class="co"># vectorized alternative is given later</span></span>
 <span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(result)</span>
 <span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  })</span></code></pre></div>
 <p>NOTE: For-loops are slow in R but fast in C++, so using loops in
@@ -981,9 +994,9 @@ and element type (double, integer, logical).</li>
 <li>(You can also define <code>nimbleList</code> types, but these can’t
 be used in models.)</li>
 </ul>
-<h3 id="two-challenges-sources-of-confusion-about-types">Two challenges
-(sources of confusion) about types:</h3>
-<h4 id="dynamic-vs.-static-typing">Dynamic vs. static typing</h4>
+</div>
+<div id="type-challenge-1-dynamic-vs.-static-typing" class="slide section level1">
+<h1>Type challenge (1): Dynamic vs. static typing</h1>
 <ul>
 <li>R uses dynamic typing. The type of <code>x</code> can be changed by
 re-assignment. Everything is just an “R object.”</li>
@@ -997,8 +1010,9 @@ code, uses static typing. Types are determined by first assignment.</li>
     x_positive &lt;- x^2   # Problem: x_positive cannot hold doubles
   }
 )</code></pre>
-<h4 id="length-one-vectors-vs-scalars-etc.">Length-one vectors vs
-scalars; etc.</h4>
+</div>
+<div id="type-challenge-2-length-one-vectors-vs-scalars-etc." class="slide section level1">
+<h1>Type challenge (2): Length-one vectors vs scalars; etc.</h1>
 <ul>
 <li>R lacks a true scalar type. Scalars are simply vectors of length
 1.</li>
@@ -1006,7 +1020,7 @@ scalars; etc.</h4>
 efficiency.</li>
 <li>R sometimes dynamically treats a one-row or one-column matrix as a
 vector.</li>
-<li><code>nimbleFuntion</code> code requires explicit dropping of
+<li><code>nimbleFunction</code> code requires explicit dropping of
 dimensions.</li>
 </ul>
 <pre><code>foo &lt;- nimbleFunction(
@@ -1055,17 +1069,19 @@ scalars/vectors)
 </div>
 <div id="calling-external-code" class="slide section level1">
 <h1>Calling external code</h1>
-<p>Suppose we want to do some calculation that is hard or impossible to
-implement in the NIMBLE DSL (i.e., the functionality that is available
-in run code that NIMBLE can compile to C++).</p>
+<p>Suppose we want to do some calculation that is hard, time-consuming,
+or impossible to implement in the NIMBLE DSL (i.e., the functionality
+that is available in run code that NIMBLE can compile to C++).</p>
 <ul>
-<li>We can actually call arbitrary R code from within run code.
+<li>We can actually call arbitrary R code from within run code via
+<code>nimbleRcall</code>.
 <ul>
 <li>The basic idea of using <code>nimbleRcall</code> is to create a
 wrapper around an R function and use the wrapper in your model
 code.</li>
 </ul></li>
-<li>Or we can call C/C++ code from within run code.
+<li>Or we can call C/C++ code from within run code via
+<code>nimbleExternalCall</code>.
 <ul>
 <li>The basic idea of using <code>nimbleExternalCall</code> is to create
 a wrapper around a C/C++ function and use the wrapper in your model

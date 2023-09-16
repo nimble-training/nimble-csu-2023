@@ -17,9 +17,7 @@ slides > slide {
 ```{r loadLibs, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,
                       cache = FALSE)
-runChunk <- FALSE
 library(nimble)
-library(mvtnorm)
 library(coda)
 ```
 
@@ -43,14 +41,14 @@ samples <- DEresults$samples
 
 # NIMBLE's MCMC engine
 
-An `nimble` MCMC comprises one or more samplers that define $P(\theta^{(k+1)} | \theta^{(k)})$.
+An `nimble` MCMC comprises one or more samplers that define $P(\theta^{(k+1)} | \theta^{(k)},y)$.
 
 An *MCMC sampler* updates one or more dimensions of $\theta$.
 
 I.e., NIMBLE takes a Gibbs sampling strategy of cycling through sets of parameters, updating
-each set conditional on the others.
+each set conditional on the others. (Similar to JAGS/WinBUGS, unlike Stan).
 
-Let's see NIMBLE's default samplers for the E. cervi example.  Later we will cover modification of the MCMC configuration.
+Let's see NIMBLE's default samplers for the E. cervi example.  
 
 ```{r, mcmcConf, eval=TRUE}
 mcmcConf <- configureMCMC(DEmodel)
@@ -89,7 +87,7 @@ Other samplers include:
 
 
 - Mixing and computation time are both important to MCMC performance.
-   - Lots of MCMC theory ignores computational cost and focuses on mixing.
+   - MCMC theory generally ignores computational cost and focuses on mixing.
 - We'll consider effective sample size **per unit time**.
 - One can consider this for each parameter, and try to get each parameter to mix sufficiently.
 - [Vats et al. (2019, *Biometrika*)](https://doi.org/10.1093/biomet/asz002) proposed a *multivariate effective sample size (ESS)*.
@@ -100,17 +98,18 @@ Other samplers include:
 ```{r, ess}
 library(coda)
 effectiveSize(samples)
+cat("Sampling time: ", time_baseline[3], "seconds.\n")
 effectiveSize(samples) / time_baseline[3]
 ```
 
-# Modifying an MCMC configuration in `nimble`
+# Modifying an MCMC configuration
 
 
 Let's replace RW (adaptive random-walk Metropolis-Hastings) samplers with slice samplers in the E. cervi example.
 
 ```{r, slice}
 mcmcConf <- configureMCMC(DEmodel)
-params_for_slice <- "sex_int" # "farm_effect[1:6]" # Notice: Not just one node
+params_for_slice <- "sex_int" # Notice: Not just one node
 mcmcConf$printSamplers(params_for_slice)
 mcmcConf$removeSamplers(params_for_slice) # Nodes will be expanded
 expanded_params_for_slice <- DEmodel$expandNodeNames(params_for_slice)
@@ -119,6 +118,11 @@ for(p in expanded_params_for_slice)
   mcmcConf$addSampler(target = p,
                       type = "slice") # automatically looks for nimbleFunction named "slice" or "sampler_slice"
 mcmcConf$printSamplers(params_for_slice)
+```
+
+# Modifying an MCMC configuration (cont'd)
+
+```{r, slice-cont}
 mcmc <- buildMCMC(mcmcConf)
 compiled <- compileNimble(DEmodel, mcmc)
 time_slice <- system.time(samples_slice <- runMCMC(compiled$mcmc, niter = 11000, nburnin = 1000))
@@ -127,7 +131,7 @@ effectiveSize(samples_slice)
 effectiveSize(samples_slice) / time_slice[3]
 ```
 
-Effective sample size for `sex_int` improved but not by enough to offset the additional computation time.
+Effective sample size for `sex_int` improved, in this case by just enough to offset the additional computation time.
 
 # Improving MCMC
 
@@ -156,12 +160,12 @@ Sampler choices:
 
 Random effects with a mean of zero (non-centered parameterization) versus centered around a mean (centered parameterization).
 
-    - E.g., `farm_effect ~ N(0, sd)` vs. `farm_effect ~ N(mean, sd)`.
-    - Theory shows either parameterization can be better, depending on the model and data, but with reasonable amount of data, centered is often better.
-    - However, for HMC, uncentered is generally better!
+- E.g., `farm_effect ~ N(0, sd)` vs. `farm_effect ~ N(mean, sd)`.
+- Theory shows either parameterization can be better, depending on the model and data, but with reasonable amount of data, centered is often better.
+- However, for HMC, uncentered is generally better!
     
 
-# Blocking
+# Blocking: motivation
 
 Suppose we hadn't centered the covariate. We'd see strong posterior correlation between slope and intercept.
 
@@ -180,6 +184,8 @@ DEinits_uncLen$sex_int <- c(-8, -8)
 modelUncLen = nimbleModel(DEcode, constants = DEconstants_uncLen,
                           inits = DEinits_uncLen, data = DEdata)
 ```
+
+# Blocking: motivation (cont'd)
 
 ```{r, uncen-mcmc, fig.cap='', fig.width=12, fig.height=5}
 cmodelUncLen <- compileNimble(modelUncLen)
@@ -202,7 +208,7 @@ So here the main issue is the correlation of the {intercept,slope} pairs.
 
 After some trial and error, it turns out that modifying the defaults for the block sampler helps a huge amount and turns it from performing poorly to performing very well. One aspect of this is getting the relative scales of the parameters about right.
 
-```{r, fig.cap='', fig.width=12, fig.height=5}
+```{r}
 modelBlock = nimbleModel(DEcode, constants = DEconstants_uncLen,
                          inits = DEinits_uncLen, data = DEdata)
 cmodelBlock <- compileNimble(modelBlock)
@@ -219,9 +225,14 @@ mcmcConfBlock$addSampler(target = c('sex_int[2]', 'length_coef[2]'),
                  control = list(propCov = diag(c(.1, .01)), adaptInterval = 20, 
                                 adaptFactorExponent = 0.25))
 mcmcConfBlock$addMonitors('farm_effect')
+```
+
+# Block sampling (cont'd)
+
+```{r, fig.cap='', fig.width=12, fig.height=5}
 mcmcBlock <- buildMCMC(mcmcConfBlock)
 cmcmcBlock <- compileNimble(mcmcBlock, project = modelBlock)
-time_block <- system.time(DEsamplesBlock <- runMCMC(cmcmcBlock, niter = 5000, nburnin = 1000))
+time_block <- system.time(DEsamplesBlock <- runMCMC(cmcmcBlock, niter = 11000, nburnin = 1000))
 cat("Sampling time: ", time_block[3], "seconds.\n")
 
 hyperParams <- sort(modelBlock$getNodeNames(topOnly = TRUE))
@@ -235,6 +246,8 @@ ts.plot(DEsamplesBlock[ , 'sex_int[2]'], main = 'sex intercept 2')
 ```
 
 So the blocking helps a lot, though the farm effects show some oscillations. (A longer run looks fine.)
+
+That was primarily intended as an illustration since we could simply center the covariates to address the intercept-slope correlation, but it looks like it could be a big improvement. We'd need to look further at the random effects.
 
 # HMC: setup
 
@@ -267,19 +280,25 @@ DEcode_hmc <- nimbleCode({
     Ecervi_01[i] ~ dbern(disease_probability[i])
   }
 })
+```
 
+# HMC: setup (cont'd)
 
+Configuring the HMC sampler:
+
+```{r, hmc-cont}
 modelHMC <- nimbleModel(DEcode_hmc, constants = DEconstants,
               inits = DEinits, data = DEdata, buildDerivs = TRUE)
 cmodelHMC <- compileNimble(modelHMC)
 
 hmc <- buildHMC(modelHMC)
 cHMC <- compileNimble(hmc, project = modelHMC)
+```
 
 # HMC: results
 
 ```{r, hmc2, fig.cap='', fig.width=12, fig.height=5}
-time_hmc <- system.time(DEsamplesHMC <- runMCMC(cHMC, niter = 5000, nburnin = 1000))
+time_hmc <- system.time(DEsamplesHMC <- runMCMC(cHMC, niter = 11000, nburnin = 1000))
 cat("Sampling time: ", time_hmc[3], "seconds.\n")
 effectiveSize(DEsamplesHMC) / time_hmc[3]
 
@@ -290,7 +309,7 @@ ts.plot(DEsamplesHMC[ , 'farm_effect[1]'], main = 'farm effect 1')
 ts.plot(DEsamplesHMC[ , 'length_coef[1]'], main = 'length slope 1')
 ```
 
-That mixes well on a per iteration basis, but notice that it took a lot more time (16 seconds compared to a few seconds for our previous MCMCs) to get the same number of samples. So adjusted for computation time, the samplers seem fairly comparable, albeit without deep investigation here.
+That mixes well on a per iteration basis, but notice that it took a lot more time (`r round(time_hmc[3])` seconds) compared to a few seconds for our previous MCMCs) to get the same number of samples. So adjusted for computation time, the samplers seem fairly comparable, albeit without deep investigation here.
 
 
 # Think like a graph: when to vectorize
