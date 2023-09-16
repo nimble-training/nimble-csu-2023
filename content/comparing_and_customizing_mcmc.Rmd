@@ -290,7 +290,7 @@ ts.plot(DEsamplesHMC[ , 'farm_effect[1]'], main = 'farm effect 1')
 ts.plot(DEsamplesHMC[ , 'length_coef[1]'], main = 'length slope 1')
 ```
 
-That mixes well on a per iteration basis, but notice that it took a lot more time (15 seconds compared to 1-2 second for our previous MCMCs) to get the same number of samples. Later on, we'll properly assess mixing in light of sampling time.
+That mixes well on a per iteration basis, but notice that it took a lot more time (16 seconds compared to a few seconds for our previous MCMCs) to get the same number of samples. So adjusted for computation time, the samplers seem fairly comparable, albeit without deep investigation here.
 
 
 # Think like a graph: when to vectorize
