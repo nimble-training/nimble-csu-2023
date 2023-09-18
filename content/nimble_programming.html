@@ -762,10 +762,10 @@ negative sd values).</p>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">warn =</span> <span class="sc">-</span><span class="dv">1</span>)   <span class="do">## turn off the warnings to keep the html cleaner</span></span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(optR <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>), rObjective<span class="sc">$</span>run, <span class="at">control =</span> <span class="fu">list</span>(<span class="at">fnscale =</span> <span class="sc">-</span><span class="dv">1</span>)))</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##   6.087   0.000   6.095</code></pre>
+##   5.657   0.000   5.657</code></pre>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(optC <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>), cObjective<span class="sc">$</span>run, <span class="at">control =</span> <span class="fu">list</span>(<span class="at">fnscale =</span> <span class="sc">-</span><span class="dv">1</span>)))</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.002   0.000   0.002</code></pre>
+##   0.001   0.000   0.002</code></pre>
 <div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>optR</span></code></pre></div>
 <pre><code>## $par
 ## [1] 0.2551346 0.5781320 0.2329039
@@ -846,12 +846,12 @@ a derivative-free method like Nelder-Mead.</p>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(optR <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>), rObjective<span class="sc">$</span>fun, <span class="at">gr =</span> rObjective<span class="sc">$</span>grad,</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">method =</span> <span class="st">&quot;BFGS&quot;</span>, <span class="at">control =</span> <span class="fu">list</span>(<span class="at">fnscale =</span> <span class="sc">-</span><span class="dv">1</span>)))</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##  14.300   0.000  14.299</code></pre>
+##  13.809   0.004  13.812</code></pre>
 <div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">warn =</span> origWarn)</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(optC <span class="ot">&lt;-</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>), cObjective<span class="sc">$</span>fun, <span class="at">gr =</span> cObjective<span class="sc">$</span>grad,</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">method =</span> <span class="st">&quot;BFGS&quot;</span>, <span class="at">control =</span> <span class="fu">list</span>(<span class="at">fnscale =</span> <span class="sc">-</span><span class="dv">1</span>)))</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.002   0.000   0.001</code></pre>
+##   0.002   0.000   0.002</code></pre>
 <div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>optR</span></code></pre></div>
 <pre><code>## $par
 ## [1] 0.2551686 0.5780858 0.2329004
@@ -1601,10 +1601,10 @@ implement that.</li>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|</code></pre>
 <div class="sourceCode" id="cb102"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Sampling time: &quot;</span>, time_newsampler[<span class="dv">3</span>], <span class="st">&quot;seconds.</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
-<pre><code>## Sampling time:  3.24 seconds.</code></pre>
+<pre><code>## Sampling time:  3.317 seconds.</code></pre>
 <div class="sourceCode" id="cb104"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a><span class="fu">effectiveSize</span>(samples) <span class="sc">/</span> time_newsampler[<span class="dv">3</span>]</span></code></pre></div>
 <pre><code>##        farm_sd length_coef[1] length_coef[2]     sex_int[1]     sex_int[2] 
-##       253.8314       395.9287       298.2905       588.6647       485.3845</code></pre>
+##       247.9390       386.7378       291.3661       574.9996       474.1169</code></pre>
 </div>
 <div id="accessing-more-information-from-a-sampler" class="slide section level1">
 <h1>Accessing more information from a sampler</h1>
@@ -1625,7 +1625,7 @@ from an on-the-fly example.</p>
 ##     ans &lt;- NULL
 ##     invisible(ans)
 ## }
-## &lt;environment: 0x55b977d891d0&gt;</code></pre>
+## &lt;environment: 0x564a82a4b718&gt;</code></pre>
 <div class="sourceCode" id="cb108"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a><span class="do">## See where our sampler of interest is in the sampler configuration list.</span></span>
 <span id="cb108-2"><a href="#cb108-2" aria-hidden="true" tabindex="-1"></a>mcmcConf<span class="sc">$</span><span class="fu">printSamplers</span>()</span></code></pre></div>
 <pre><code>## [1]  RW sampler: sex_int[1]
@@ -1756,8 +1756,8 @@ from an on-the-fly example.</p>
 ## function () 
 ## {
 ## }
-## &lt;bytecode: 0x55b977ff3df0&gt;
-## &lt;environment: 0x55b961b8d4f0&gt;
+## &lt;bytecode: 0x564a84f787a8&gt;
+## &lt;environment: 0x564a6ebbd3d0&gt;
 ## Field &quot;CobjectInterface&quot;:
 ## An object of class &quot;uninitializedField&quot;
 ## Slot &quot;field&quot;:
@@ -1806,10 +1806,30 @@ from an on-the-fly example.</p>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|</code></pre>
 <div class="sourceCode" id="cb128"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a>cDEmcmc<span class="sc">$</span><span class="fu">getTimes</span>()</span></code></pre></div>
-<pre><code>##  [1] 0.042857 0.033821 0.039454 0.032433 0.002184 0.002234 0.003599 0.004970
-##  [9] 0.002007 0.007244 0.001015 0.002355 0.003771 0.003106 0.003752 0.016956
-## [17] 0.003150 0.002552 0.004112 0.005811 0.002669 0.002882 0.003489 0.001292
-## [25] 0.003264 0.002723 0.003047 0.002103 0.001512 0.072820</code></pre>
+<pre><code>##  [1] 0.043630 0.033132 0.038570 0.032875 0.001980 0.002265 0.003723 0.005116
+##  [9] 0.002100 0.007430 0.000994 0.002819 0.004026 0.003356 0.003867 0.017692
+## [17] 0.003217 0.002725 0.004237 0.006118 0.002688 0.002992 0.003543 0.001292
+## [25] 0.003148 0.002562 0.002989 0.002000 0.001498 0.072875</code></pre>
+</div>
+<div id="on-the-horizon-for-nimble" class="slide section level1">
+<h1>On the horizon for NIMBLE</h1>
+<ul>
+<li>Adaptive Gauss-Hermite Quadrature for higher-accuracy (than Laplace)
+approximation</li>
+<li>Variations on INLA-like methods
+<ul>
+<li>Approximations to marginals for hyperparameters</li>
+<li>Conditional sampling of latent values</li>
+</ul></li>
+<li>Revamping the NIMBLE compiler and model representation
+<ul>
+<li>Improved parallelization</li>
+<li>Sparse matrices</li>
+<li>Improved programming experience</li>
+<li>Saving and reloading <code>nimble</code> objects</li>
+<li>Compact representation of model structure/relationships</li>
+</ul></li>
+</ul>
 </div>
 
   <!-- dynamically load mathjax for compatibility with self-contained -->

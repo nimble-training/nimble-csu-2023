@@ -773,4 +773,17 @@ cDEmcmc$run(niter = 1000, time = TRUE)
 cDEmcmc$getTimes()
 ```
 
+# On the horizon for NIMBLE
+
+- Adaptive Gauss-Hermite Quadrature for higher-accuracy (than Laplace) approximation
+- Variations on INLA-like methods
+   - Approximations to marginals for hyperparameters
+   - Conditional sampling of latent values
+- Revamping the NIMBLE compiler and model representation
+   - Improved parallelization
+   - Sparse matrices
+   - Improved programming experience
+   - Saving and reloading `nimble` objects
+   - Compact representation of model structure/relationships
+
 

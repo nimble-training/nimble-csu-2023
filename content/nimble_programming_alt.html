@@ -588,10 +588,10 @@ origWarn &lt;- options()$warn
 options(warn = -1)   ## turn off the warnings to keep the html cleaner
 system.time(optR &lt;- optim(c(0, 0, 1), rObjective$run, control = list(fnscale = -1)))</code></pre>
 <pre><code>##    user  system elapsed 
-##   6.289   0.000   6.291</code></pre>
+##   6.194   0.000   6.194</code></pre>
 <pre class="r"><code>system.time(optC &lt;- optim(c(0, 0, 1), cObjective$run, control = list(fnscale = -1)))</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.002   0.000   0.003</code></pre>
+##   0.003   0.000   0.003</code></pre>
 <pre class="r"><code>optR</code></pre>
 <pre><code>## $par
 ## [1] 0.2551346 0.5781320 0.2329039
@@ -672,12 +672,12 @@ a derivative-free method like Nelder-Mead.</p>
 system.time(optR &lt;- optim(c(0, 0, 1), rObjective$fun, gr = rObjective$grad,
                  method = &quot;BFGS&quot;, control = list(fnscale = -1)))</code></pre>
 <pre><code>##    user  system elapsed 
-##  14.015   0.004  14.021</code></pre>
+##  13.705   0.004  13.708</code></pre>
 <pre class="r"><code>options(warn = origWarn)
 system.time(optC &lt;- optim(c(0, 0, 1), cObjective$fun, gr = cObjective$grad,
                  method = &quot;BFGS&quot;, control = list(fnscale = -1)))</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.003   0.000   0.003</code></pre>
+##   0.004   0.000   0.004</code></pre>
 <pre class="r"><code>optR</code></pre>
 <pre><code>## $par
 ## [1] 0.2551686 0.5780858 0.2329004
@@ -1433,10 +1433,10 @@ cDEmcmc &lt;- compileNimble(DEmcmc, project = DEmodel)</code></pre>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|</code></pre>
 <pre class="r"><code>cat(&quot;Sampling time: &quot;, time_newsampler[3], &quot;seconds.\n&quot;)</code></pre>
-<pre><code>## Sampling time:  2.739 seconds.</code></pre>
+<pre><code>## Sampling time:  2.699 seconds.</code></pre>
 <pre class="r"><code>effectiveSize(samples) / time_newsampler[3]</code></pre>
 <pre><code>##        farm_sd length_coef[1] length_coef[2]     sex_int[1]     sex_int[2] 
-##       300.2605       468.3495       352.8518       696.3394       574.1679</code></pre>
+##       304.7105       475.2905       358.0812       706.6594       582.6772</code></pre>
 </div>
 <div id="accessing-more-information-from-a-sampler" class="section level1">
 <h1>Accessing more information from a sampler</h1>
@@ -1457,7 +1457,7 @@ cDEmcmc$run</code></pre>
 ##     ans &lt;- NULL
 ##     invisible(ans)
 ## }
-## &lt;environment: 0x55b984079db0&gt;</code></pre>
+## &lt;environment: 0x564a8cf80730&gt;</code></pre>
 <pre class="r"><code>## See where our sampler of interest is in the sampler configuration list.
 mcmcConf$printSamplers()</code></pre>
 <pre><code>## [1]  RW sampler: sex_int[1]
@@ -1588,8 +1588,8 @@ cDEmcmc$samplerFunctions</code></pre>
 ## function () 
 ## {
 ## }
-## &lt;bytecode: 0x55b977ff3df0&gt;
-## &lt;environment: 0x55b961b8d4f0&gt;
+## &lt;bytecode: 0x564a84f787a8&gt;
+## &lt;environment: 0x564a6ebbd3d0&gt;
 ## Field &quot;CobjectInterface&quot;:
 ## An object of class &quot;uninitializedField&quot;
 ## Slot &quot;field&quot;:
@@ -1638,10 +1638,30 @@ cDEmcmc$run(niter = 1000, time = TRUE)</code></pre>
 <pre><code>## |-------------|-------------|-------------|-------------|
 ## |-------------------------------------------------------|</code></pre>
 <pre class="r"><code>cDEmcmc$getTimes()</code></pre>
-<pre><code>##  [1] 0.033922 0.027069 0.031995 0.026721 0.001711 0.002034 0.003321 0.004649
-##  [9] 0.001888 0.006281 0.001002 0.002119 0.003200 0.002684 0.003339 0.014220
-## [17] 0.002631 0.002231 0.003624 0.004991 0.002340 0.002498 0.003066 0.001135
-## [25] 0.002704 0.002247 0.002538 0.001770 0.001365 0.061411</code></pre>
+<pre><code>##  [1] 0.035000 0.028492 0.033225 0.027687 0.001728 0.001996 0.003360 0.004716
+##  [9] 0.001852 0.006575 0.000991 0.002153 0.003287 0.002767 0.003413 0.015044
+## [17] 0.002778 0.002319 0.003582 0.005195 0.002429 0.002532 0.003045 0.001124
+## [25] 0.002790 0.002248 0.002562 0.001793 0.001385 0.063078</code></pre>
+</div>
+<div id="on-the-horizon-for-nimble" class="section level1">
+<h1>On the horizon for NIMBLE</h1>
+<ul>
+<li>Adaptive Gauss-Hermite Quadrature for higher-accuracy (than Laplace)
+approximation</li>
+<li>Variations on INLA-like methods
+<ul>
+<li>Approximations to marginals for hyperparameters</li>
+<li>Conditional sampling of latent values</li>
+</ul></li>
+<li>Revamping the NIMBLE compiler and model representation
+<ul>
+<li>Improved parallelization</li>
+<li>Sparse matrices</li>
+<li>Improved programming experience</li>
+<li>Saving and reloading <code>nimble</code> objects</li>
+<li>Compact representation of model structure/relationships</li>
+</ul></li>
+</ul>
 </div>
 
 
